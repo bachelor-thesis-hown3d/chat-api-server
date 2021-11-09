@@ -5,7 +5,7 @@ import (
 	"io"
 	"time"
 
-	rocketpb "github.com/hown3d/api-server/proto/rocket/v1"
+	rocketpb "github.com/bachelor-thesis-hown3d/chat-api-server/proto/rocket/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -32,7 +32,7 @@ func GetPodLogs(ctx context.Context, clientset *kubernetes.Clientset, namespace 
 			time.Sleep(1 * time.Second)
 		}
 		if err == io.EOF {
-			time.Sleep(10*time.Second)
+			time.Sleep(10 * time.Second)
 		}
 		if err != nil {
 			return err

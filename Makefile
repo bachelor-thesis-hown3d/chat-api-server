@@ -1,4 +1,6 @@
-BUF=docker run --volume "$(shell /bin/pwd):/workspace" --volume "$(PROJECT_DIR)/bin:/usr/bin" --workdir /workspace bufbuild/buf 
+BIN="$(shell /bin/pwd)/bin"
+BUF_VERSION=1.0.0-rc7
+BUF=bin/buf
 proto-build:
 	$(BUF) build
 
@@ -8,24 +10,18 @@ proto-generate: deps
 proto-lint:
 	$(BUF) lint	
 
+buf:
+	@mkdir bin/ || true
+	curl -sSL "https://github.com/bufbuild/buf/releases/download/v$(BUF_VERSION)/buf-$(shell uname -s)-$(shell uname -m)" -o $(BUF)
+	chmod +x $(BUF)
+
 deps:
-	$(call go-get-tool,protoc-gen-go,google.golang.org/protobuf/cmd/protoc-gen-go@latest)
-	$(call go-get-tool,protoc-gen-go-grpc,google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest)
+	@mkdir bin/ || true
+	GOBIN=$(BIN) go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+	GOBIN=$(BIN) go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
 run:
 	air
 
-# go-get-tool will 'go get' any package $2 and install it to $1.
-PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
-define go-get-tool
-@[ -f $(1) ] || { \
-set -e ;\
-TMP_DIR=$$(mktemp -d) ;\
-cd $$TMP_DIR ;\
-go mod init tmp ;\
-echo "Downloading $(2)" ;\
-GOBIN=$(PROJECT_DIR)/bin go get $(2) ;\
-rm -rf $$TMP_DIR ;\
-}
-endef
-
+fmt:
+	go fmt ./...

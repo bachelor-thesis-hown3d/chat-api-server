@@ -35,11 +35,11 @@ message GetRequest {
 message GetResponse {
   string status = 1;
   string phase = 2;
-  string name = 3;
-  string webserver_version = 4;
-  string mongodb_version = 5;
-  string database_size = 6;
-  repeated string pods = 7;
+  string webserver_version = 3;
+  string mongodb_version = 4;
+  string database_size = 5;
+  repeated string pods = 6;
+  string name = 7;
 }
 
 message GetAllRequest {
