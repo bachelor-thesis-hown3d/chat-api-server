@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package rocket.v1;
+
+option go_package = "github.com/hown3d/chat-apiserver/proto/v1;rocket";
+
+// Protobuf Service of API
+service RocketService {
+  rpc Create(CreateRequest) returns (CreateResponse) {}
+  rpc Update(UpdateRequest) returns (UpdateResponse) {}
+  rpc Delete(DeleteRequest) returns (DeleteResponse) {}
+  rpc Get(GetRequest) returns (GetResponse) {}
+  rpc GetAll(GetAllRequest) returns (GetAllResponse) {}
+  rpc Logs(LogsRequest) returns (stream LogsResponse) {}
+}
+
+message CreateRequest {
+  string user = 1;
+  string name = 2;
+  string namespace = 3;
+  string rocket_version = 4;
+  string mongodb_version = 5;
+  string database_size = 6;
+  string email = 7;
+}
+
+message CreateResponse { bool successful = 1; }
+
+message GetRequest {
+  string user = 1;
+  string name = 2;
+  string namespace = 3;
+}
+
+message GetResponse {
+  string status = 1;
+  string phase = 2;
+  string name = 3;
+  string webserver_version = 4;
+  string mongodb_version = 5;
+  string database_size = 6;
+  repeated string pods = 7;
+}
+
+message GetAllRequest {
+  string user = 1;
+  string namespace = 2;
+}
+
+message GetAllResponse { repeated GetResponse rockets = 1; }
+
+message UpdateRequest { CreateRequest updated_rocket = 1; }
+
+message UpdateResponse { bool successful = 1; }
+
+message DeleteRequest { string name = 1; }
+
+message DeleteResponse { bool successful = 1; }
+
+message LogsRequest {
+  string name = 1;
+  string namespace = 2;
+  // wether to read from only mongodb or rocket webserver
+  string pod = 3;
+}
+
+message LogsResponse {
+  int32 level = 1;
+  string message = 2;
+  string pod = 3;
+}
