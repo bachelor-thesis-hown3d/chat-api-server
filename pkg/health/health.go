@@ -13,10 +13,10 @@ type healthChecker struct {
 	logger     *zap.SugaredLogger
 }
 
-func NewHealthChecker(kubeclient *kubernetes.Clientset, logger *zap.SugaredLogger) healthChecker {
+func NewHealthChecker(kubeclient *kubernetes.Clientset) healthChecker {
 	return healthChecker{
 		kubeclient: kubeclient,
-		logger:     logger,
+		logger:     zap.S().Named("health"),
 	}
 }
 

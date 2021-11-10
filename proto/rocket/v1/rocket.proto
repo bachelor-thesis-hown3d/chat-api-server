@@ -40,6 +40,7 @@ message GetResponse {
   string database_size = 5;
   repeated string pods = 6;
   string name = 7;
+  string namespace = 8;
 }
 
 message GetAllRequest {
