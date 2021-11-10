@@ -1,7 +1,7 @@
 package k8sutil
 
 import (
-	chatv1alpha1 "github.com/bachelor-thesis-hown3d/chat-operator/pkg/client/internalclientset/typed/chat.accso.de/v1alpha1"
+	chatv1alpha1 "github.com/bachelor-thesis-hown3d/chat-operator/pkg/client/clientset/versioned/typed/chat.accso.de/v1alpha1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
