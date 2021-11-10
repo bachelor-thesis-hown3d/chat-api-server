@@ -81,12 +81,14 @@ func (r *Rocket) Logs(name, namespace, pod string, stream rocketpb.RocketService
 		return err
 	}
 	if pod != "" {
+		requestLogger.Debugw(fmt.Sprintf("Getting logs from pod %v", pod), "instance", name, "namespace", namespace)
 		err = k8sutil.GetPodLogs(stream.Context(), r.kubeclient, []string{pod}, namespace, stream)
 	} else {
 		var podNames []string
 		for _, pod := range rocket.Status.Pods {
 			podNames = append(podNames, pod.Name)
 		}
+		requestLogger.Debugw("Getting logs from all pods", "instance", name, "namespace", namespace)
 		err = k8sutil.GetPodLogs(stream.Context(), r.kubeclient, podNames, namespace, stream)
 	}
 	if err != nil {

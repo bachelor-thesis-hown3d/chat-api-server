@@ -1,6 +1,7 @@
 package k8sutil
 
 import (
+	"bufio"
 	"context"
 	"io"
 	"time"
@@ -27,6 +28,7 @@ func GetPodLogs(ctx context.Context, clientset kubernetes.Interface, podNames []
 			if err != nil {
 				return err
 			}
+			reader := bufio.NewReader(stream)
 			defer stream.Close()
 		podLoop:
 			for {
@@ -37,21 +39,21 @@ func GetPodLogs(ctx context.Context, clientset kubernetes.Interface, podNames []
 					logger.Debugw("Stream closed, exiting logs", "pod", podName)
 					break podLoop
 				default:
-					buf := make([]byte, 2000)
-					numBytes, err := stream.Read(buf)
-					if numBytes == 0 {
-						logger.Debugw("No bytes left in buffer", "pod", podName)
-						time.Sleep(1 * time.Second)
+					line, isPrefix, err := reader.ReadLine()
+					// only prefix, another line is coming
+					for isPrefix == true {
+						var suffix []byte
+						suffix, isPrefix, err = reader.ReadLine()
+						line = append(line, suffix...)
 					}
 					if err == io.EOF {
-						logger.Debugw("Recieved end of file", "pod", podName)
-						time.Sleep(10 * time.Second)
+						logger.Debugw("Recieved end of file, sleeping for 5 seconds", "pod", podName)
+						time.Sleep(5 * time.Second)
 					}
 					if err != nil {
 						return err
 					}
-					message := string(buf[:numBytes])
-					err = grpc.Send(&rocketpb.LogsResponse{Message: message, Pod: podName})
+					err = grpc.Send(&rocketpb.LogsResponse{Message: string(line), Pod: podName})
 					if err != nil {
 						return err
 					}

@@ -28,7 +28,7 @@ func (c healthChecker) Check(ctx context.Context, req *grpc_health_v1.HealthChec
 	}
 	// check for connectivity, respond with serving if alive
 	if _, err := c.kubeclient.ServerVersion(); err == nil {
-		c.logger.Infow("api-server is ready!", "health", "check")
+		c.logger.Debugw("api-server is ready!", "health", "check")
 		response.Status = grpc_health_v1.HealthCheckResponse_SERVING
 	} else {
 		c.logger.Errorw("Error contacting the kubernetes api", "health", "check")
@@ -39,7 +39,7 @@ func (c healthChecker) Check(ctx context.Context, req *grpc_health_v1.HealthChec
 }
 
 func (c healthChecker) Watch(req *grpc_health_v1.HealthCheckRequest, server grpc_health_v1.Health_WatchServer) error {
-	c.logger.Info("Serving the Watch request for health check", "health", "watch")
+	c.logger.Debugw("Serving the Watch request for health check", "health", "watch")
 	return server.Send(&grpc_health_v1.HealthCheckResponse{
 		Status: grpc_health_v1.HealthCheckResponse_SERVING,
 	})

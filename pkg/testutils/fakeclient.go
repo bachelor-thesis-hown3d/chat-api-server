@@ -7,13 +7,16 @@ import (
 	chatv1alpha1 "github.com/bachelor-thesis-hown3d/chat-operator/api/chat.accso.de/v1alpha1"
 )
 
-func NewFakeChatClient(objs ...*chatv1alpha1.Rocket) chatv1alpha1Client.ChatV1alpha1Interface {
+// NewFakeChatClient returns a faked chat client that responds with the specified objs
+// returns a ChatV1alpha1Interface to interact with Rocket objects
+func NewFakeChatClient(objs ...chatv1alpha1.Rocket) chatv1alpha1Client.ChatV1alpha1Interface {
 	var rockets []runtime.Object
 	// convert to runtime Object slice
-	for _, obj := range objs {
-		rockets = append(rockets, obj)
+	// inside a for loop, we are using a copy of the object
+	// access via pointer to retrieve the real value
+	for i := range objs {
+		rockets = append(rockets, &objs[i])
 	}
 
-	fk := fakeChat.NewSimpleClientset(rockets...)
-	return fk.ChatV1alpha1()
+	return fakeChat.NewSimpleClientset(rockets...).ChatV1alpha1()
 }
