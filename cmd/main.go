@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"net"
+	"os"
 	"path/filepath"
 
 	"github.com/bachelor-thesis-hown3d/chat-api-server/pkg/api"
@@ -28,22 +30,26 @@ var (
 )
 
 func main() {
-	if home := homedir.HomeDir(); home != "" {
-		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
+	file := filepath.Join(homedir.HomeDir(), ".kube", "config")
+	if _, err := os.Stat(file); !errors.Is(err, os.ErrNotExist) {
+		kubeconfig = flag.String("kubeconfig", file, "(optional) absolute path to the kubeconfig file")
 	} else {
 		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
 	}
 	flag.Parse()
 
+	grpcServer := grpc.NewServer()
+
 	if *devel {
 		l, _ := zap.NewDevelopment()
 		logger = l.Sugar()
+		reflection.Register(grpcServer)
 		go func() {
 			err := grpcui.NewGRPCUiWebServer(context.TODO(), fmt.Sprintf("0.0.0.0:%v", *port), zap.NewStdLog(logger.Desugar()))
 			if err != nil {
 				logger.Fatal(fmt.Errorf("Failed to serve grpcui web server: %w", err).Error())
 			}
-		}()
+			}()
 	} else {
 		l, _ := zap.NewProduction()
 		logger = l.Sugar()
@@ -65,7 +71,6 @@ func main() {
 		logger.Fatalf("Failed to listen on port %v: %w", port, err)
 	}
 
-	grpcServer := grpc.NewServer()
 	healthService := health.NewHealthChecker(kubeclient)
 
 	service := service.NewRocket(kubeclient, chatclient)
@@ -73,7 +78,6 @@ func main() {
 
 	rocketpb.RegisterRocketServiceServer(grpcServer, api)
 	grpc_health_v1.RegisterHealthServer(grpcServer, healthService)
-	reflection.Register(grpcServer)
 
 	logger.Infof("Starting grpc server on %v ...", lis.Addr().String())
 	if err := grpcServer.Serve(lis); err != nil {

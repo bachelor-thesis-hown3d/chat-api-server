@@ -7,7 +7,6 @@ import (
 	"github.com/bachelor-thesis-hown3d/chat-api-server/pkg/service"
 	"github.com/bachelor-thesis-hown3d/chat-api-server/pkg/testutils"
 	rocketpb "github.com/bachelor-thesis-hown3d/chat-api-server/proto/rocket/v1"
-	"github.com/bachelor-thesis-hown3d/chat-operator/api/chat.accso.de/v1alpha1"
 	chatv1alpha1 "github.com/bachelor-thesis-hown3d/chat-operator/api/chat.accso.de/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,12 +39,12 @@ func TestRocket_Create(t *testing.T) {
 }
 
 func TestRocket_Update(t *testing.T) {
-	type args struct {
-		rocket *chatv1alpha1.Rocket
+	type faked struct {
+		rocket chatv1alpha1.Rocket
 	}
 	tests := []struct {
 		name    string
-		args    args
+		faked   faked
 		want    *rocketpb.UpdateResponse
 		wantErr bool
 	}{
@@ -53,7 +52,7 @@ func TestRocket_Update(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := service.NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.args.rocket))
+			s := service.NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.faked.rocket))
 			err := s.Update(context.TODO(), nil)
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -64,12 +63,15 @@ func TestRocket_Update(t *testing.T) {
 
 func TestRocket_Delete(t *testing.T) {
 	type args struct {
-		in1    *rocketpb.DeleteRequest
-		rocket *chatv1alpha1.Rocket
+		in1 *rocketpb.DeleteRequest
+	}
+	type faked struct {
+		rocket chatv1alpha1.Rocket
 	}
 	tests := []struct {
 		name    string
 		args    args
+		faked   faked
 		want    *rocketpb.DeleteResponse
 		wantErr bool
 	}{
@@ -77,7 +79,7 @@ func TestRocket_Delete(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := service.NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.args.rocket))
+			s := service.NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.faked.rocket))
 			err := s.Delete(context.TODO(), nil)
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -88,53 +90,74 @@ func TestRocket_Delete(t *testing.T) {
 
 func TestRocket_Get(t *testing.T) {
 	type args struct {
-		name   string
-		rocket *chatv1alpha1.Rocket
+		name string
+	}
+	type faked struct {
+		rocket chatv1alpha1.Rocket
 	}
 	tests := []struct {
 		name    string
 		args    args
-		want    *v1alpha1.Rocket
+		faked   faked
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "existing rocket",
+			args: args{
+				name: "bar",
+			},
+			faked: faked{
+				rocket: chatv1alpha1.Rocket{
+					ObjectMeta: v1.ObjectMeta{
+						Name: "bar",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "non existing rocket",
+			args: args{
+				name: "foo",
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := service.NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.args.rocket))
+			s := service.NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.faked.rocket))
 			rocket, err := s.Get(context.TODO(), tt.args.name, TestNamespace)
 			if tt.wantErr {
 				assert.Error(t, err)
 			}
-			assert.Equal(t, tt.args.rocket, rocket)
+			if rocket != nil {
+				assert.Equal(t, tt.faked.rocket.Name, rocket.Name)
+				assert.Equal(t, tt.faked.rocket.Namespace, rocket.Namespace)
+			}
 		})
 	}
 }
 
 func TestRocket_GetAll(t *testing.T) {
-	type args struct {
-		rockets []*chatv1alpha1.Rocket
+	type faked struct {
+		rockets []chatv1alpha1.Rocket
 	}
 	tests := []struct {
 		name    string
-		args    args
+		faked   faked
 		wantErr bool
 	}{
-		struct {
-			name    string
-			args    args
-			wantErr bool
-		}{
+		{
 			name: "two rockets",
-			args: args{
-				rockets: []*chatv1alpha1.Rocket{
-					&chatv1alpha1.Rocket{
+			faked: faked{
+				rockets: []chatv1alpha1.Rocket{
+					{
 						ObjectMeta: v1.ObjectMeta{
 							Name:      "foo",
 							Namespace: TestNamespace,
 						},
 					},
-					&chatv1alpha1.Rocket{
+					{
 						ObjectMeta: v1.ObjectMeta{
 							Name:      "bar",
 							Namespace: TestNamespace,
@@ -146,13 +169,18 @@ func TestRocket_GetAll(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := service.NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.args.rockets...))
+			s := service.NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.faked.rockets...))
 			rockets, err := s.GetAll(context.TODO(), TestNamespace)
-			if tt.wantErr {
+			if err != nil && tt.wantErr {
+				t.Fatalf("Error on getAll")
+			} else if tt.wantErr {
 				assert.Error(t, err)
 			}
-			for _, rocket := range rockets.Items {
-				assert.Contains(t, tt.args.rockets, rocket)
+			for _, actual := range rockets.Items {
+				for _, expected := range tt.faked.rockets {
+					assert.Equal(t, expected.Name, actual.Name)
+					assert.Equal(t, expected.Namespace, actual.Namespace)
+				}
 			}
 
 		})

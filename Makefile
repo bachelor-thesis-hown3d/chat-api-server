@@ -1,6 +1,9 @@
 BIN="$(shell /bin/pwd)/bin"
 BUF_VERSION=1.0.0-rc7
 BUF=bin/buf
+
+VERSION=0.0.2
+
 proto-build:
 	$(BUF) build
 
@@ -23,5 +26,15 @@ deps:
 run:
 	air
 
+docker-build:
+	docker build . -t quay.io/hown3d/chat-api-server:$(VERSION)
+
+docker-push:
+	docker push quay.io/hown3d/chat-api-server:$(VERSION)
+
 fmt:
 	go fmt ./...
+
+.PHONY: deployment
+deployment:
+	kubectl apply -f deployment/kube.yaml
