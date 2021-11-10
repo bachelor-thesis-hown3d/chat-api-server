@@ -2,7 +2,7 @@ package api
 
 import (
 	"context"
-	chatv1alpha1 "github.com/bachelor-thesis-hown3d/chat-operator/pkg/client/internalclientset/typed/chat.accso.de/v1alpha1"
+	chatv1alpha1 "github.com/bachelor-thesis-hown3d/chat-operator/pkg/client/clientset/versioned/typed/chat.accso.de/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/bachelor-thesis-hown3d/chat-api-server/pkg/k8sutil"

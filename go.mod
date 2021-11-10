@@ -3,7 +3,7 @@ module github.com/bachelor-thesis-hown3d/chat-api-server
 go 1.17
 
 require (
-	github.com/bachelor-thesis-hown3d/chat-operator v0.0.0-20211109141832-13b331d018e2
+	github.com/bachelor-thesis-hown3d/chat-operator v0.0.0-20211109163125-e4f03cdc8c79
 	github.com/fullstorydev/grpcui v1.2.0
 	google.golang.org/grpc v1.42.0
 	google.golang.org/protobuf v1.27.1
