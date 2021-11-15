@@ -25,16 +25,53 @@ func NewAPIServer(kubeclient kubernetes.Interface, chatclient chatv1alpha1.ChatV
 	}
 }
 
-func (r *rocketAPIServer) Create(_ context.Context, _ *rocketpb.CreateRequest) (*rocketpb.CreateResponse, error) {
-	panic("not implemented") // TODO: Implement
+func (r *rocketAPIServer) Create(ctx context.Context, req *rocketpb.CreateRequest) (*rocketpb.CreateResponse, error) {
+	requestLogger := r.logger.With("name", req.GetName(), "namespace", req.GetNamespace(), "method", "create")
+	requestLogger.Debug("New Request")
+	err := r.service.Create(ctx, req.GetName(), req.GetNamespace(), req.GetName(), req.GetEmail(), req.GetDatabaseSize(), req.GetReplicas())
+	if err != nil {
+		return nil, err
+	}
+	return &rocketpb.CreateResponse{}, nil
+}
+
+func (r *rocketAPIServer) AvailableVersions(ctx context.Context, req *rocketpb.AvailableVersionsRequest) (*rocketpb.AvailableVersionsResponse, error) {
+	switch i := req.Image; i {
+	case rocketpb.AvailableVersionsRequest_MONGODB:
+		tags, err := r.service.AvailableVersions("bitnami/mongodb")
+		return &rocketpb.AvailableVersionsResponse{Tags: tags}, err
+
+	case rocketpb.AvailableVersionsRequest_ROCKETCHAT:
+		tags, err := r.service.AvailableVersions("rocketchat/rocket.chat")
+		return &rocketpb.AvailableVersionsResponse{Tags: tags}, err
+	}
+	return &rocketpb.AvailableVersionsResponse{}, fmt.Errorf("Image doesnt match")
+
+}
+
+func (r *rocketAPIServer) Status(req *rocketpb.StatusRequest, stream rocketpb.RocketService_StatusServer) error {
+
+	requestLogger := r.logger.With("name", req.GetName(), "namespace", req.GetNamespace(), "method", "status")
+	requestLogger.Debug("New Request")
+	if req.GetNamespace() == "" {
+		return fmt.Errorf("Need to specify the namespace")
+	}
+	return r.service.Status(req.GetName(), req.GetNamespace(), stream)
 }
 
 func (r *rocketAPIServer) Update(_ context.Context, req *rocketpb.UpdateRequest) (*rocketpb.UpdateResponse, error) {
 	panic("not implemented") // TODO: Implement
 }
 
-func (r *rocketAPIServer) Delete(_ context.Context, _ *rocketpb.DeleteRequest) (*rocketpb.DeleteResponse, error) {
-	panic("not implemented") // TODO: Implement
+func (r *rocketAPIServer) Delete(ctx context.Context, req *rocketpb.DeleteRequest) (*rocketpb.DeleteResponse, error) {
+
+	requestLogger := r.logger.With("name", req.GetName(), "namespace", req.GetNamespace(), "method", "delete")
+	requestLogger.Debug("New Request")
+	if req.GetNamespace() == "" {
+		return &rocketpb.DeleteResponse{}, fmt.Errorf("Need to specify the namespace")
+	}
+	err := r.service.Delete(ctx, req.GetName(), req.GetNamespace())
+	return &rocketpb.DeleteResponse{}, err
 }
 
 func (r *rocketAPIServer) Get(ctx context.Context, req *rocketpb.GetRequest) (*rocketpb.GetResponse, error) {

@@ -1,42 +1,21 @@
-package service_test
+package service
 
 import (
 	"context"
 	"testing"
 
-	"github.com/bachelor-thesis-hown3d/chat-api-server/pkg/service"
 	"github.com/bachelor-thesis-hown3d/chat-api-server/pkg/testutils"
 	rocketpb "github.com/bachelor-thesis-hown3d/chat-api-server/proto/rocket/v1"
 	chatv1alpha1 "github.com/bachelor-thesis-hown3d/chat-operator/api/chat.accso.de/v1alpha1"
+	chatClient "github.com/bachelor-thesis-hown3d/chat-operator/pkg/client/clientset/versioned/typed/chat.accso.de/v1alpha1"
 	"github.com/stretchr/testify/assert"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"go.uber.org/zap"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
 const TestNamespace string = "test-ns"
-
-func TestRocket_Create(t *testing.T) {
-	type args struct {
-		in1 *rocketpb.CreateRequest
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *rocketpb.CreateResponse
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := service.NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient())
-			err := s.Create(context.TODO(), nil)
-			if tt.wantErr {
-				assert.Error(t, err)
-			}
-		})
-	}
-}
 
 func TestRocket_Update(t *testing.T) {
 	type faked struct {
@@ -52,7 +31,7 @@ func TestRocket_Update(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := service.NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.faked.rocket))
+			s := NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.faked.rocket))
 			err := s.Update(context.TODO(), nil)
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -63,7 +42,8 @@ func TestRocket_Update(t *testing.T) {
 
 func TestRocket_Delete(t *testing.T) {
 	type args struct {
-		in1 *rocketpb.DeleteRequest
+		name      string
+		namespace string
 	}
 	type faked struct {
 		rocket chatv1alpha1.Rocket
@@ -79,8 +59,8 @@ func TestRocket_Delete(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := service.NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.faked.rocket))
-			err := s.Delete(context.TODO(), nil)
+			s := NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.faked.rocket))
+			err := s.Delete(context.TODO(), tt.args.name, tt.args.namespace)
 			if tt.wantErr {
 				assert.Error(t, err)
 			}
@@ -108,7 +88,7 @@ func TestRocket_Get(t *testing.T) {
 			},
 			faked: faked{
 				rocket: chatv1alpha1.Rocket{
-					ObjectMeta: v1.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: "bar",
 					},
 				},
@@ -125,7 +105,7 @@ func TestRocket_Get(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := service.NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.faked.rocket))
+			s := NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.faked.rocket))
 			rocket, err := s.Get(context.TODO(), tt.args.name, TestNamespace)
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -152,13 +132,13 @@ func TestRocket_GetAll(t *testing.T) {
 			faked: faked{
 				rockets: []chatv1alpha1.Rocket{
 					{
-						ObjectMeta: v1.ObjectMeta{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "foo",
 							Namespace: TestNamespace,
 						},
 					},
 					{
-						ObjectMeta: v1.ObjectMeta{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "bar",
 							Namespace: TestNamespace,
 						},
@@ -169,7 +149,7 @@ func TestRocket_GetAll(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := service.NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.faked.rockets...))
+			s := NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.faked.rockets...))
 			rockets, err := s.GetAll(context.TODO(), TestNamespace)
 			if err != nil && tt.wantErr {
 				t.Fatalf("Error on getAll")
@@ -202,10 +182,47 @@ func TestRocket_Logs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := service.NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient())
+			s := NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient())
 			err := s.Logs(tt.args.name, TestNamespace, tt.args.pod, nil)
 			if tt.wantErr {
 				assert.Error(t, err)
+			}
+		})
+	}
+}
+
+func TestRocket_Create(t *testing.T) {
+	type fields struct {
+		kubeclient kubernetes.Interface
+		chatclient chatClient.ChatV1alpha1Interface
+		logger     *zap.SugaredLogger
+	}
+	type args struct {
+		ctx          context.Context
+		name         string
+		namespace    string
+		user         string
+		email        string
+		databaseSize int64
+		replicas     int32
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &Rocket{
+				kubeclient: tt.fields.kubeclient,
+				chatclient: tt.fields.chatclient,
+				logger:     tt.fields.logger,
+			}
+			if err := r.Create(tt.args.ctx, tt.args.name, tt.args.namespace, tt.args.user, tt.args.email, tt.args.databaseSize, tt.args.replicas); (err != nil) != tt.wantErr {
+				t.Errorf("Rocket.Create() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

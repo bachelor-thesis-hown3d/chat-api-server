@@ -28,24 +28,41 @@ type MockedRocket struct {
 func (m *MockedRocket) Get(ctx context.Context, name, namespace string) (*v1alpha1.Rocket, error) {
 
 	args := m.Called(ctx, name, namespace)
-  if args.Get(0) == nil {
-    return nil, args.Error(1)
-  }
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).(*v1alpha1.Rocket), args.Error(1)
 
 }
-
-func (m *MockedRocket) Logs(name, namespace, pod string, stream rocketpb.RocketService_LogsServer) error {
-	args := m.Called(name, namespace, pod, stream)
-  return args.Error(0)
+func (m *MockedRocket) AvailableVersions(repo string) ([]string, error) {
+	args := m.Called(repo)
+	return args.Get(0).([]string), args.Error(1)
+}
+func (m *MockedRocket) Delete(ctx context.Context, name, namespace string) error {
+	args := m.Called(name, namespace)
+	return args.Error(0)
+}
+func (m *MockedRocket) Status(name, namespace string, stream rocketpb.RocketService_StatusServer) error {
+	args := m.Called(name, namespace, stream)
+	return args.Error(0)
 }
 
-func (m *MockedRocket) GetAll(ctx context.Context,namespace string) (*v1alpha1.RocketList, error) {
+func (m *MockedRocket) Create(ctx context.Context, name, namespace, user, email string, databaseSize int64, replicas int32) error {
+	args := m.Called(ctx, name, namespace, user, email, databaseSize)
+	return args.Error(0)
 
-	args := m.Called(ctx,namespace)
-  if args.Get(0) == nil {
-    return nil, args.Error(1)
-  }
+}
+func (m *MockedRocket) Logs(name, namespace, pod string, stream rocketpb.RocketService_LogsServer) error {
+	args := m.Called(name, namespace, pod, stream)
+	return args.Error(0)
+}
+
+func (m *MockedRocket) GetAll(ctx context.Context, namespace string) (*v1alpha1.RocketList, error) {
+
+	args := m.Called(ctx, namespace)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).(*v1alpha1.RocketList), args.Error(1)
 
 }
