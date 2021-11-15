@@ -2,34 +2,36 @@ package k8sutil
 
 import (
 	"bufio"
-	"context"
-	"io"
-	"time"
+	"fmt"
 
 	rocketpb "github.com/bachelor-thesis-hown3d/chat-api-server/proto/rocket/v1"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
 // GetPodLogs retrieves the Logs of a Pod and writes it to a grpc stream
-func GetPodLogs(ctx context.Context, clientset kubernetes.Interface, podNames []string, namespace string, grpc rocketpb.RocketService_LogsServer) error {
+func GetPodLogs(clientset kubernetes.Interface, podNames []string, namespace string, stream rocketpb.RocketService_LogsServer, errChan chan error) {
+	ctx := stream.Context()
 	logger := zap.S()
 	podLogOptions := corev1.PodLogOptions{
 		Follow: true,
 	}
-
+	podClient := clientset.CoreV1().Pods(namespace)
 	for _, name := range podNames {
-		go func(podName string) error {
-			podLogRequest := clientset.CoreV1().
-				Pods(namespace).
-				GetLogs(podName, &podLogOptions)
-			stream, err := podLogRequest.Stream(ctx)
-			if err != nil {
-				return err
+		logger.Debugf("Starting log collection for pod: %v", name)
+		go func(podName string) {
+			if _, err := podClient.Get(ctx, podName, v1.GetOptions{}); err != nil {
+				errChan <- fmt.Errorf("Error getting pod: %w", err)
 			}
-			reader := bufio.NewReader(stream)
-			defer stream.Close()
+			req := podClient.GetLogs(podName, &podLogOptions)
+			logStream, err := req.Stream(ctx)
+			if err != nil {
+				errChan <- err
+			}
+			reader := bufio.NewReader(logStream)
+			defer logStream.Close()
 		podLoop:
 			for {
 				select {
@@ -46,23 +48,19 @@ func GetPodLogs(ctx context.Context, clientset kubernetes.Interface, podNames []
 						suffix, isPrefix, err = reader.ReadLine()
 						line = append(line, suffix...)
 					}
-					if err == io.EOF {
-						logger.Debugw("Recieved end of file, sleeping for 5 seconds", "pod", podName)
-						time.Sleep(5 * time.Second)
-					}
 					if err != nil {
-						return err
+						errChan <- err
 					}
-					err = grpc.Send(&rocketpb.LogsResponse{Message: string(line), Pod: podName})
+					if line == nil {
+						continue
+					}
+					err = stream.Send(&rocketpb.LogsResponse{Message: string(line), Pod: podName})
 					if err != nil {
-						return err
+						errChan <- err
 					}
 				}
 			}
-			// return when breaking the loop on reading from a closed channel
-			return nil
 		}(name)
 
 	}
-	return nil
 }

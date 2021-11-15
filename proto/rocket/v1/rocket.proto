@@ -10,8 +10,11 @@ service RocketService {
   rpc Update(UpdateRequest) returns (UpdateResponse) {}
   rpc Delete(DeleteRequest) returns (DeleteResponse) {}
   rpc Get(GetRequest) returns (GetResponse) {}
+  rpc Status(StatusRequest) returns (stream StatusResponse) {}
   rpc GetAll(GetAllRequest) returns (GetAllResponse) {}
   rpc Logs(LogsRequest) returns (stream LogsResponse) {}
+  rpc AvailableVersions(AvailableVersionsRequest)
+      returns (AvailableVersionsResponse) {}
 }
 
 message CreateRequest {
@@ -20,11 +23,13 @@ message CreateRequest {
   string namespace = 3;
   string rocket_version = 4;
   string mongodb_version = 5;
-  string database_size = 6;
+  // database size will be calculated in gigabyte
+  int64 database_size = 6;
   string email = 7;
+  int32 replicas = 8;
 }
 
-message CreateResponse { bool successful = 1; }
+message CreateResponse {}
 
 message GetRequest {
   string user = 1;
@@ -54,9 +59,12 @@ message UpdateRequest { CreateRequest updated_rocket = 1; }
 
 message UpdateResponse { bool successful = 1; }
 
-message DeleteRequest { string name = 1; }
+message DeleteRequest {
+  string name = 1;
+  string namespace = 2;
+}
 
-message DeleteResponse { bool successful = 1; }
+message DeleteResponse {}
 
 message LogsRequest {
   string name = 1;
@@ -70,3 +78,25 @@ message LogsResponse {
   string message = 2;
   string pod = 3;
 }
+
+message StatusRequest {
+
+  string name = 1;
+  string namespace = 2;
+}
+
+message StatusResponse {
+  string status = 1;
+  bool ready = 2;
+}
+
+message AvailableVersionsRequest {
+  enum Image {
+    UNSPECIFIED = 0;
+    MONGODB = 1;
+    ROCKETCHAT = 2;
+  }
+  Image image = 1;
+}
+
+message AvailableVersionsResponse { repeated string tags = 1; }

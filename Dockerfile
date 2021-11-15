@@ -15,7 +15,7 @@ COPY pkg/ pkg/
 COPY proto/ proto/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o server cmd/main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o server cmd/server/main.go
 
 FROM alpine
 WORKDIR /app

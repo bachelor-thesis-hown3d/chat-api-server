@@ -49,7 +49,7 @@ func main() {
 			if err != nil {
 				logger.Fatal(fmt.Errorf("Failed to serve grpcui web server: %w", err).Error())
 			}
-			}()
+		}()
 	} else {
 		l, _ := zap.NewProduction()
 		logger = l.Sugar()

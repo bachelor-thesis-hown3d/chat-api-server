@@ -22,8 +22,10 @@ type RocketServiceClient interface {
 	Update(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*UpdateResponse, error)
 	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error)
 	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error)
+	Status(ctx context.Context, in *StatusRequest, opts ...grpc.CallOption) (RocketService_StatusClient, error)
 	GetAll(ctx context.Context, in *GetAllRequest, opts ...grpc.CallOption) (*GetAllResponse, error)
 	Logs(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (RocketService_LogsClient, error)
+	AvailableVersions(ctx context.Context, in *AvailableVersionsRequest, opts ...grpc.CallOption) (*AvailableVersionsResponse, error)
 }
 
 type rocketServiceClient struct {
@@ -70,6 +72,38 @@ func (c *rocketServiceClient) Get(ctx context.Context, in *GetRequest, opts ...g
 	return out, nil
 }
 
+func (c *rocketServiceClient) Status(ctx context.Context, in *StatusRequest, opts ...grpc.CallOption) (RocketService_StatusClient, error) {
+	stream, err := c.cc.NewStream(ctx, &RocketService_ServiceDesc.Streams[0], "/rocket.v1.RocketService/Status", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &rocketServiceStatusClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type RocketService_StatusClient interface {
+	Recv() (*StatusResponse, error)
+	grpc.ClientStream
+}
+
+type rocketServiceStatusClient struct {
+	grpc.ClientStream
+}
+
+func (x *rocketServiceStatusClient) Recv() (*StatusResponse, error) {
+	m := new(StatusResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func (c *rocketServiceClient) GetAll(ctx context.Context, in *GetAllRequest, opts ...grpc.CallOption) (*GetAllResponse, error) {
 	out := new(GetAllResponse)
 	err := c.cc.Invoke(ctx, "/rocket.v1.RocketService/GetAll", in, out, opts...)
@@ -80,7 +114,7 @@ func (c *rocketServiceClient) GetAll(ctx context.Context, in *GetAllRequest, opt
 }
 
 func (c *rocketServiceClient) Logs(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (RocketService_LogsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &RocketService_ServiceDesc.Streams[0], "/rocket.v1.RocketService/Logs", opts...)
+	stream, err := c.cc.NewStream(ctx, &RocketService_ServiceDesc.Streams[1], "/rocket.v1.RocketService/Logs", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -111,6 +145,15 @@ func (x *rocketServiceLogsClient) Recv() (*LogsResponse, error) {
 	return m, nil
 }
 
+func (c *rocketServiceClient) AvailableVersions(ctx context.Context, in *AvailableVersionsRequest, opts ...grpc.CallOption) (*AvailableVersionsResponse, error) {
+	out := new(AvailableVersionsResponse)
+	err := c.cc.Invoke(ctx, "/rocket.v1.RocketService/AvailableVersions", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RocketServiceServer is the server API for RocketService service.
 // All implementations should embed UnimplementedRocketServiceServer
 // for forward compatibility
@@ -119,8 +162,10 @@ type RocketServiceServer interface {
 	Update(context.Context, *UpdateRequest) (*UpdateResponse, error)
 	Delete(context.Context, *DeleteRequest) (*DeleteResponse, error)
 	Get(context.Context, *GetRequest) (*GetResponse, error)
+	Status(*StatusRequest, RocketService_StatusServer) error
 	GetAll(context.Context, *GetAllRequest) (*GetAllResponse, error)
 	Logs(*LogsRequest, RocketService_LogsServer) error
+	AvailableVersions(context.Context, *AvailableVersionsRequest) (*AvailableVersionsResponse, error)
 }
 
 // UnimplementedRocketServiceServer should be embedded to have forward compatible implementations.
@@ -139,11 +184,17 @@ func (UnimplementedRocketServiceServer) Delete(context.Context, *DeleteRequest) 
 func (UnimplementedRocketServiceServer) Get(context.Context, *GetRequest) (*GetResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
 }
+func (UnimplementedRocketServiceServer) Status(*StatusRequest, RocketService_StatusServer) error {
+	return status.Errorf(codes.Unimplemented, "method Status not implemented")
+}
 func (UnimplementedRocketServiceServer) GetAll(context.Context, *GetAllRequest) (*GetAllResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAll not implemented")
 }
 func (UnimplementedRocketServiceServer) Logs(*LogsRequest, RocketService_LogsServer) error {
 	return status.Errorf(codes.Unimplemented, "method Logs not implemented")
+}
+func (UnimplementedRocketServiceServer) AvailableVersions(context.Context, *AvailableVersionsRequest) (*AvailableVersionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AvailableVersions not implemented")
 }
 
 // UnsafeRocketServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -229,6 +280,27 @@ func _RocketService_Get_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RocketService_Status_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(StatusRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RocketServiceServer).Status(m, &rocketServiceStatusServer{stream})
+}
+
+type RocketService_StatusServer interface {
+	Send(*StatusResponse) error
+	grpc.ServerStream
+}
+
+type rocketServiceStatusServer struct {
+	grpc.ServerStream
+}
+
+func (x *rocketServiceStatusServer) Send(m *StatusResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 func _RocketService_GetAll_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetAllRequest)
 	if err := dec(in); err != nil {
@@ -268,6 +340,24 @@ func (x *rocketServiceLogsServer) Send(m *LogsResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _RocketService_AvailableVersions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AvailableVersionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RocketServiceServer).AvailableVersions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rocket.v1.RocketService/AvailableVersions",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RocketServiceServer).AvailableVersions(ctx, req.(*AvailableVersionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RocketService_ServiceDesc is the grpc.ServiceDesc for RocketService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -295,8 +385,17 @@ var RocketService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GetAll",
 			Handler:    _RocketService_GetAll_Handler,
 		},
+		{
+			MethodName: "AvailableVersions",
+			Handler:    _RocketService_AvailableVersions_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Status",
+			Handler:       _RocketService_Status_Handler,
+			ServerStreams: true,
+		},
 		{
 			StreamName:    "Logs",
 			Handler:       _RocketService_Logs_Handler,
