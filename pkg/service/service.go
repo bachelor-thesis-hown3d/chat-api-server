@@ -10,6 +10,7 @@ import (
 	"github.com/bachelor-thesis-hown3d/chat-operator/api/chat.accso.de/v1alpha1"
 	chatv1alpha1 "github.com/bachelor-thesis-hown3d/chat-operator/api/chat.accso.de/v1alpha1"
 	chatClient "github.com/bachelor-thesis-hown3d/chat-operator/pkg/client/clientset/versioned/typed/chat.accso.de/v1alpha1"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 
 	certmanager "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	v1 "k8s.io/api/core/v1"
@@ -17,7 +18,6 @@ import (
 
 	"github.com/bachelor-thesis-hown3d/chat-api-server/pkg/k8sutil"
 	rocketpb "github.com/bachelor-thesis-hown3d/chat-api-server/proto/rocket/v1"
-	"go.uber.org/zap"
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/client-go/kubernetes"
@@ -29,15 +29,12 @@ type Rocket struct {
 	kubeclient        kubernetes.Interface
 	chatclient        chatClient.ChatV1alpha1Interface
 	certmanagerClient certmanager.CertmanagerV1Interface
-	logger            *zap.SugaredLogger
 }
 
 func NewRocket(kubeclient kubernetes.Interface, chatclient chatClient.ChatV1alpha1Interface) *Rocket {
-	logger := zap.S().Named("service")
 	return &Rocket{
 		kubeclient: kubeclient,
 		chatclient: chatclient,
-		logger:     logger,
 	}
 }
 
@@ -69,17 +66,29 @@ func (r *Rocket) Status(name, namespace string, stream rocketpb.RocketService_St
 	}
 }
 
-func (r *Rocket) Create(ctx context.Context, name, namespace, user, email string, databaseSize int64, replicas int32) error {
-	requestLogger := r.logger.With("name", name, "namespace", namespace, "method", "create")
-
-	err := k8sutil.CreateNamespaceIfNotExist(ctx, namespace, r.kubeclient)
+func (r *Rocket) Register(ctx context.Context, user string, cpu, mem int64) error {
+	l := ctxzap.Extract(ctx)
+	err := k8sutil.CreateNamespaceIfNotExist(ctx, user, r.kubeclient)
 	if err != nil {
-		requestLogger.Errorf("Couldn't create namespace: %v", err)
+		err = fmt.Errorf("Error creating namespace: %v", err)
+		l.Error(err.Error())
 		return err
 	}
 
+	err = k8sutil.CreateResourceQuotaIfNotExist(ctx, cpu, mem, user, r.kubeclient)
+	if err != nil {
+		err = fmt.Errorf("Error creating resource Quota: %v", err)
+		l.Error(err.Error())
+		return err
+	}
+	return nil
+}
+
+func (r *Rocket) Create(ctx context.Context, name, namespace, user, email string, databaseSize int64, replicas int32) error {
+	l := ctxzap.Extract(ctx)
+
 	//TODO: Use Issuer Name for Ingress
-	_, err = k8sutil.NewIssuer(ctx, email, name, namespace, r.certmanagerClient)
+	_, err := k8sutil.NewIssuer(ctx, email, name, namespace, r.certmanagerClient)
 	if err != nil {
 		return err
 	}
@@ -111,7 +120,7 @@ func (r *Rocket) Create(ctx context.Context, name, namespace, user, email string
 			},
 		},
 	}
-	requestLogger.Info("Creating rocket")
+	l.Info("Creating rocket")
 	_, err = r.chatclient.Rockets(namespace).Create(ctx, rocket, metav1.CreateOptions{})
 	if err != nil {
 		return err
@@ -153,26 +162,29 @@ func (r *Rocket) Delete(ctx context.Context, name, namespace string) error {
 }
 
 func (r *Rocket) Get(ctx context.Context, name, namespace string) (*v1alpha1.Rocket, error) {
-	requestLogger := r.logger.With("name", name, "namespace", namespace, "method", "get")
+	l := ctxzap.Extract(ctx)
 	// omitting the namespace (having it set to "" will get all rockets from all namespaces)
 	rocket, err := r.chatclient.Rockets(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
-			requestLogger.Infof("Rocket not found in cluster")
-			return nil, fmt.Errorf("Rocket %v in Namespace %v was not found", name, namespace)
+			err = fmt.Errorf("Rocket %v in Namespace %v was not found", name, namespace)
+			l.Error(err.Error())
+			return nil, err
 		}
-		requestLogger.Errorf("error getting rocket from cluster api: %w", err)
+		err = fmt.Errorf("error getting rocket from cluster api: %w", err)
+		l.Error(err.Error())
 		return nil, err
 	}
 	return rocket, nil
 }
 
 func (r *Rocket) GetAll(ctx context.Context, namespace string) (*v1alpha1.RocketList, error) {
-	requestLogger := r.logger.With("namespace", namespace, "method", "getall")
+	l := ctxzap.Extract(ctx)
 	// omitting the namespace (having it set to "" will get all rockets from all namespaces)
 	rockets, err := r.chatclient.Rockets(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
-		requestLogger.Error("Error getting rocket list from cluster api")
+		err = fmt.Errorf("Error getting rocket list from cluster api: %v", err)
+		l.Error(err.Error())
 		return nil, err
 	}
 
@@ -205,38 +217,40 @@ func (r *Rocket) AvailableVersions(repo string) (tagNames []string, err error) {
 }
 
 func (r *Rocket) Logs(name, namespace, pod string, stream rocketpb.RocketService_LogsServer) error {
-	requestLogger := r.logger.With("name", name, "namespace", namespace, "method", "logs")
+	l := ctxzap.Extract(stream.Context())
 	rocket, err := r.chatclient.Rockets(namespace).Get(stream.Context(), name, metav1.GetOptions{})
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
-			requestLogger.Infof("Rocket not found in cluster")
-			return fmt.Errorf("Rocket %v in Namespace %v was not found", name, namespace)
+			err = fmt.Errorf("Rocket %v in Namespace %v was not found", name, namespace)
+			l.Error(err.Error())
+			return err
 		}
-		requestLogger.Errorf("error getting rocket from cluster api: %w", err)
+		err = fmt.Errorf("error getting rocket from cluster api: %w", err)
+		l.Error(err.Error())
 		return err
 	}
 
 	errChan := make(chan error, 0)
 
 	if pod != "" {
-		requestLogger.Debugf("Getting logs from pod %v", pod)
+		l.Debug(fmt.Sprintf("Getting logs from pod %v", pod))
 		k8sutil.GetPodLogs(r.kubeclient, []string{pod}, namespace, stream, errChan)
 	} else {
 		var podNames []string
 		for _, pod := range rocket.Status.Pods {
 			podNames = append(podNames, pod.Name)
 		}
-		requestLogger.Debug("Getting logs from all pods")
+		l.Debug("Getting logs from all pods")
 		k8sutil.GetPodLogs(r.kubeclient, podNames, namespace, stream, errChan)
 	}
 	// wait for stream context to close
-	requestLogger.Debugf("Waiting for grpc context to close")
+	l.Debug("Waiting for grpc context to close")
 	select {
 	case <-stream.Context().Done():
-		requestLogger.Debugf("Context done!")
+		l.Debug("Context done!")
 		return nil
 	case err = <-errChan:
-		requestLogger.Debug("Error recieving pod logs in routines")
+		l.Debug("Error recieving pod logs in routines")
 		return err
 	}
 

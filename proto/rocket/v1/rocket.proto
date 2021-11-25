@@ -15,7 +15,24 @@ service RocketService {
   rpc Logs(LogsRequest) returns (stream LogsResponse) {}
   rpc AvailableVersions(AvailableVersionsRequest)
       returns (AvailableVersionsResponse) {}
+  rpc Register(RegisterRequest) returns (RegisterResponse) {}
 }
+
+message RegisterRequest {
+  enum Size {
+    SIZE_UNSPECIFIED = 0;
+    // 1 vCPU and 2Gi Memory
+    SIZE_SMALL = 1;
+    // 2 vCPU and 4Gi Memory
+    SIZE_MEDIUM = 2;
+    // 4 vCPU and 8Gi Memory
+    SIZE_LARGE = 3;
+  }
+  Size size = 1;
+  string username = 2;
+}
+
+message RegisterResponse {}
 
 message CreateRequest {
   string user = 1;
@@ -92,9 +109,9 @@ message StatusResponse {
 
 message AvailableVersionsRequest {
   enum Image {
-    UNSPECIFIED = 0;
-    MONGODB = 1;
-    ROCKETCHAT = 2;
+    IMAGE_UNSPECIFIED = 0;
+    IMAGE_MONGODB = 1;
+    IMAGE_ROCKETCHAT = 2;
   }
   Image image = 1;
 }

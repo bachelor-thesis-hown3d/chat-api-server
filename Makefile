@@ -4,10 +4,10 @@ BUF=bin/buf
 
 VERSION=0.0.2
 
-proto-build:
+proto-build: proto-lint
 	$(BUF) build
 
-proto-generate: deps
+proto-generate: deps proto-lint
 	$(BUF) generate
 
 proto-lint:

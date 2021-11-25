@@ -1,10 +1,10 @@
 package testutils
 
 import (
+	chatv1alpha1 "github.com/bachelor-thesis-hown3d/chat-operator/api/chat.accso.de/v1alpha1"
 	fakeChat "github.com/bachelor-thesis-hown3d/chat-operator/pkg/client/clientset/versioned/fake"
 	chatv1alpha1Client "github.com/bachelor-thesis-hown3d/chat-operator/pkg/client/clientset/versioned/typed/chat.accso.de/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
-	chatv1alpha1 "github.com/bachelor-thesis-hown3d/chat-operator/api/chat.accso.de/v1alpha1"
 )
 
 // NewFakeChatClient returns a faked chat client that responds with the specified objs

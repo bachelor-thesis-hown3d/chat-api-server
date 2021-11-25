@@ -17,13 +17,13 @@ func NewIssuer(ctx context.Context, email, name, namespace string, client certma
 
 	i := &certmanagerv1.Issuer{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: name+"-issuer",
+			Name: name + "-issuer",
 		},
 		Spec: certmanagerv1.IssuerSpec{
 			IssuerConfig: certmanagerv1.IssuerConfig{
 				ACME: &v1.ACMEIssuer{
-					Server: "https://acme-v02.api.letsencrypt.org/directory",
-					Email: email,
+					Server:         "https://acme-v02.api.letsencrypt.org/directory",
+					Email:          email,
 					PreferredChain: "ISRG Root X1",
 				},
 			},

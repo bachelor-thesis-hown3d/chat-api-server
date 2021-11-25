@@ -19,6 +19,6 @@ func NewGRPCUiWebServer(ctx context.Context, target string, logger *log.Logger) 
 	if err != nil {
 		return err
 	}
-	logger.Printf("Serving grpc webui on port: %v", 8080)
+	logger.Printf("Serving grpc webui on port: %v", 9090)
 	return http.ListenAndServe(":9090", h)
 }

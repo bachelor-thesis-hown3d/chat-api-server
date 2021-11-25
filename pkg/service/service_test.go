@@ -219,7 +219,6 @@ func TestRocket_Create(t *testing.T) {
 			r := &Rocket{
 				kubeclient: tt.fields.kubeclient,
 				chatclient: tt.fields.chatclient,
-				logger:     tt.fields.logger,
 			}
 			if err := r.Create(tt.args.ctx, tt.args.name, tt.args.namespace, tt.args.user, tt.args.email, tt.args.databaseSize, tt.args.replicas); (err != nil) != tt.wantErr {
 				t.Errorf("Rocket.Create() error = %v, wantErr %v", err, tt.wantErr)

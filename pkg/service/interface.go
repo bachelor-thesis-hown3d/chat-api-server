@@ -16,4 +16,5 @@ type Interface interface {
 	Status(name, namespace string, stream rocketpb.RocketService_StatusServer) error
 	Delete(ctx context.Context, name, namespace string) error
 	AvailableVersions(repo string) ([]string, error)
+	Register(ctx context.Context, user string, cpu, mem int64) error
 }
