@@ -17,7 +17,10 @@ require (
 	k8s.io/client-go v0.22.3
 )
 
-require github.com/jetstack/cert-manager v1.6.1
+require (
+	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
+	github.com/jetstack/cert-manager v1.6.1
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect

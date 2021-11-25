@@ -66,3 +66,9 @@ func (m *MockedRocket) GetAll(ctx context.Context, namespace string) (*v1alpha1.
 	return args.Get(0).(*v1alpha1.RocketList), args.Error(1)
 
 }
+
+
+func (m *MockedRocket) Register(ctx context.Context, user string, cpu, mem int64) error {
+	args := m.Called(ctx, user, cpu, mem)
+	return args.Error(0)
+}
