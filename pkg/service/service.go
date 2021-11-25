@@ -72,8 +72,14 @@ func (r *Rocket) Status(name, namespace string, stream rocketpb.RocketService_St
 func (r *Rocket) Create(ctx context.Context, name, namespace, user, email string, databaseSize int64, replicas int32) error {
 	requestLogger := r.logger.With("name", name, "namespace", namespace, "method", "create")
 
+	err := k8sutil.CreateNamespaceIfNotExist(ctx, namespace, r.kubeclient)
+	if err != nil {
+		requestLogger.Errorf("Couldn't create namespace: %v", err)
+		return err
+	}
+
 	//TODO: Use Issuer Name for Ingress
-	_, err := k8sutil.NewIssuer(ctx, email, name, namespace, r.certmanagerClient)
+	_, err = k8sutil.NewIssuer(ctx, email, name, namespace, r.certmanagerClient)
 	if err != nil {
 		return err
 	}
