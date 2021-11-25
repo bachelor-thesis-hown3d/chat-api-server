@@ -11,6 +11,7 @@ import (
 	chatv1alpha1 "github.com/bachelor-thesis-hown3d/chat-operator/api/chat.accso.de/v1alpha1"
 	chatClient "github.com/bachelor-thesis-hown3d/chat-operator/pkg/client/clientset/versioned/typed/chat.accso.de/v1alpha1"
 
+	certmanager "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -25,9 +26,10 @@ import (
 )
 
 type Rocket struct {
-	kubeclient kubernetes.Interface
-	chatclient chatClient.ChatV1alpha1Interface
-	logger     *zap.SugaredLogger
+	kubeclient        kubernetes.Interface
+	chatclient        chatClient.ChatV1alpha1Interface
+	certmanagerClient certmanager.CertmanagerV1Interface
+	logger            *zap.SugaredLogger
 }
 
 func NewRocket(kubeclient kubernetes.Interface, chatclient chatClient.ChatV1alpha1Interface) *Rocket {
@@ -69,6 +71,13 @@ func (r *Rocket) Status(name, namespace string, stream rocketpb.RocketService_St
 
 func (r *Rocket) Create(ctx context.Context, name, namespace, user, email string, databaseSize int64, replicas int32) error {
 	requestLogger := r.logger.With("name", name, "namespace", namespace, "method", "create")
+
+	//TODO: Use Issuer Name for Ingress
+	_, err := k8sutil.NewIssuer(ctx, email, name, namespace, r.certmanagerClient)
+	if err != nil {
+		return err
+	}
+
 	rocket := &chatv1alpha1.Rocket{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -96,9 +105,8 @@ func (r *Rocket) Create(ctx context.Context, name, namespace, user, email string
 			},
 		},
 	}
-
 	requestLogger.Info("Creating rocket")
-	_, err := r.chatclient.Rockets(namespace).Create(ctx, rocket, metav1.CreateOptions{})
+	_, err = r.chatclient.Rockets(namespace).Create(ctx, rocket, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
