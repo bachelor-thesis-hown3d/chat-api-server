@@ -72,6 +72,11 @@ func main() {
 		logger.Fatal(fmt.Sprintf("Failed to get chat kubeclient from config: %v", err))
 	}
 
+	certmanagerClient, err := k8sutil.NewCertManagerClientset(kubeconfig)
+	if err != nil {
+		logger.Fatal(fmt.Sprintf("Failed to get certmanager kube client from config: %v", err))
+	}
+
 	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%v", *port))
 	if err != nil {
 		logger.Fatal(fmt.Sprintf("Failed to listen on port %v: %v", port, err))
@@ -79,7 +84,7 @@ func main() {
 
 	healthService := health.NewHealthChecker(kubeclient)
 
-	service := service.NewRocket(kubeclient, chatclient)
+	service := service.NewRocket(kubeclient, chatclient, certmanagerClient)
 	api := api.NewAPIServer(kubeclient, chatclient, service)
 
 	rocketpb.RegisterRocketServiceServer(grpcServer, api)
