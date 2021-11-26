@@ -9,7 +9,6 @@ import (
 	chatv1alpha1 "github.com/bachelor-thesis-hown3d/chat-operator/api/chat.accso.de/v1alpha1"
 	chatClient "github.com/bachelor-thesis-hown3d/chat-operator/pkg/client/clientset/versioned/typed/chat.accso.de/v1alpha1"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
@@ -31,7 +30,7 @@ func TestRocket_Update(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.faked.rocket))
+			s := NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.faked.rocket), testutils.NewFakeCertManagerClient())
 			err := s.Update(context.TODO(), nil)
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -59,7 +58,7 @@ func TestRocket_Delete(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.faked.rocket))
+			s := NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.faked.rocket), testutils.NewFakeCertManagerClient())
 			err := s.Delete(context.TODO(), tt.args.name, tt.args.namespace)
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -105,7 +104,7 @@ func TestRocket_Get(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.faked.rocket))
+			s := NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.faked.rocket), testutils.NewFakeCertManagerClient())
 			rocket, err := s.Get(context.TODO(), tt.args.name, TestNamespace)
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -149,7 +148,7 @@ func TestRocket_GetAll(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.faked.rockets...))
+			s := NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.faked.rockets...), testutils.NewFakeCertManagerClient())
 			rockets, err := s.GetAll(context.TODO(), TestNamespace)
 			if err != nil && tt.wantErr {
 				t.Fatalf("Error on getAll")
@@ -182,7 +181,7 @@ func TestRocket_Logs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient())
+			s := NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(), testutils.NewFakeCertManagerClient())
 			err := s.Logs(tt.args.name, TestNamespace, tt.args.pod, nil)
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -195,7 +194,6 @@ func TestRocket_Create(t *testing.T) {
 	type fields struct {
 		kubeclient kubernetes.Interface
 		chatclient chatClient.ChatV1alpha1Interface
-		logger     *zap.SugaredLogger
 	}
 	type args struct {
 		ctx          context.Context
@@ -216,11 +214,8 @@ func TestRocket_Create(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := &Rocket{
-				kubeclient: tt.fields.kubeclient,
-				chatclient: tt.fields.chatclient,
-			}
-			if err := r.Create(tt.args.ctx, tt.args.name, tt.args.namespace, tt.args.user, tt.args.email, tt.args.databaseSize, tt.args.replicas); (err != nil) != tt.wantErr {
+			s := NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(), testutils.NewFakeCertManagerClient())
+			if err := s.Create(tt.args.ctx, tt.args.name, tt.args.namespace, tt.args.user, tt.args.email, tt.args.databaseSize, tt.args.replicas); (err != nil) != tt.wantErr {
 				t.Errorf("Rocket.Create() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

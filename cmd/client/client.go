@@ -54,14 +54,14 @@ func main() {
 	// 	log.Fatalf("Error creating new rocket: %v", err)
 	// }
 
-	versions, err := client.AvailableVersions(ctx, &rocketpb.AvailableVersionsRequest{Image: rocketpb.AvailableVersionsRequest_ROCKETCHAT})
+	versions, err := client.AvailableVersions(ctx, &rocketpb.AvailableVersionsRequest{Image: rocketpb.AvailableVersionsRequest_IMAGE_ROCKETCHAT})
 	if err != nil {
 		fmt.Println(fmt.Errorf("Can't get available version of rocketchat: %w", err))
 	}
 	for i := 0; i < 5; i++ {
 		fmt.Printf("Rocket Tag: %v\n", versions.Tags[i])
 	}
-	versions, err = client.AvailableVersions(ctx, &rocketpb.AvailableVersionsRequest{Image: rocketpb.AvailableVersionsRequest_MONGODB})
+	versions, err = client.AvailableVersions(ctx, &rocketpb.AvailableVersionsRequest{Image: rocketpb.AvailableVersionsRequest_IMAGE_MONGODB})
 	if err != nil {
 		fmt.Println(fmt.Errorf("Can't get available version of mongodb: %w", err))
 	}

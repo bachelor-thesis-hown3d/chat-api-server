@@ -22,7 +22,7 @@ func CreateResourceQuotaIfNotExist(ctx context.Context, cpu, mem int64, namespac
 		},
 		Spec: corev1.ResourceQuotaSpec{
 			Hard: corev1.ResourceList{
-				corev1.ResourceCPU:    *resource.NewMilliQuantity(cpu, resource.DecimalSI),
+				corev1.ResourceCPU:    *resource.NewMilliQuantity(cpu, resource.BinarySI),
 				corev1.ResourceMemory: *resource.NewQuantity(mem*1024*1024*1024, resource.BinarySI),
 			},
 		},

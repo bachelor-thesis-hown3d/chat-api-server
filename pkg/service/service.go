@@ -31,10 +31,11 @@ type Rocket struct {
 	certmanagerClient certmanager.CertmanagerV1Interface
 }
 
-func NewRocket(kubeclient kubernetes.Interface, chatclient chatClient.ChatV1alpha1Interface) *Rocket {
+func NewRocket(kubeclient kubernetes.Interface, chatclient chatClient.ChatV1alpha1Interface, certmanagerClient certmanager.CertmanagerV1Interface) *Rocket {
 	return &Rocket{
-		kubeclient: kubeclient,
-		chatclient: chatclient,
+		kubeclient:        kubeclient,
+		chatclient:        chatclient,
+		certmanagerClient: certmanagerClient,
 	}
 }
 
@@ -88,7 +89,7 @@ func (r *Rocket) Create(ctx context.Context, name, namespace, user, email string
 	l := ctxzap.Extract(ctx)
 
 	//TODO: Use Issuer Name for Ingress
-	_, err := k8sutil.NewIssuer(ctx, email, name, namespace, r.certmanagerClient)
+	_, err := k8sutil.NewIssuer(ctx, email, name, namespace, k8sutil.SelfSigned, r.kubeclient, r.certmanagerClient)
 	if err != nil {
 		return err
 	}
@@ -96,7 +97,6 @@ func (r *Rocket) Create(ctx context.Context, name, namespace, user, email string
 	rocket := &chatv1alpha1.Rocket{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: namespace,
 		},
 		Spec: chatv1alpha1.RocketSpec{
 			Replicas: replicas,

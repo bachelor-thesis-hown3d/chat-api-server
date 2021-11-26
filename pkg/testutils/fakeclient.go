@@ -5,6 +5,9 @@ import (
 	fakeChat "github.com/bachelor-thesis-hown3d/chat-operator/pkg/client/clientset/versioned/fake"
 	chatv1alpha1Client "github.com/bachelor-thesis-hown3d/chat-operator/pkg/client/clientset/versioned/typed/chat.accso.de/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	fakeCertmanager "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/fake"
+	certmanagerv1Client "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 )
 
 // NewFakeChatClient returns a faked chat client that responds with the specified objs
@@ -19,4 +22,10 @@ func NewFakeChatClient(objs ...chatv1alpha1.Rocket) chatv1alpha1Client.ChatV1alp
 	}
 
 	return fakeChat.NewSimpleClientset(rockets...).ChatV1alpha1()
+}
+
+// NewFakeCertManagerClient returns a faked certmanager client that responds with the specified objs
+// returns a CertmanagerV1Interface to interact with Certmanager objects
+func NewFakeCertManagerClient(objs ...runtime.Object) certmanagerv1Client.CertmanagerV1Interface {
+	return fakeCertmanager.NewSimpleClientset(objs...).CertmanagerV1()
 }
