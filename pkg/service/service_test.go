@@ -216,11 +216,8 @@ func TestRocket_Create(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(), testutils.NewFakeCertManagerClient())
-			if err := s.Create(tt.args.ctx, tt.args.name, tt.args.namespace, tt.args.user, tt.args.email, tt.args.databaseSize, tt.args.replicas); (err != nil) != tt.wantErr {
-			r := &Rocket{
-				kubeclient: tt.fields.kubeclient,
-				chatclient: tt.fields.chatclient,
-				logger:     tt.fields.logger,
+			if err := s.Create(tt.args.ctx, tt.args.host, tt.args.name, tt.args.namespace, tt.args.user, tt.args.email, tt.args.databaseSize, tt.args.replicas); (err != nil) && tt.wantErr {
+				t.Fatalf("Error on create: %v", err)
 			}
 		})
 	}

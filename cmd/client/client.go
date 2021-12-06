@@ -51,7 +51,7 @@ func startOAuthAndWait() {
 
 	for oauth.Token == nil {
 		fmt.Println("AccessToken not set yet, sleeping...")
-		time.Sleep(5 * time.Second)
+		time.Sleep(1 * time.Second)
 	}
 
 	oauth.StopWebServer(serv)
@@ -70,7 +70,7 @@ func main() {
 	ctx := context.Background()
 	conn, err := grpc.DialContext(ctx, fmt.Sprintf("%v:%v", *host, *port), grpc.WithInsecure())
 	if err != nil {
-		log.Fatalf("Failed to dial localhost:10000 : %v", err)
+		log.Fatalf("Failed to dial %v:%v: %v", *host, *port, err)
 	}
 
 	client := rocketpb.NewRocketServiceClient(conn)

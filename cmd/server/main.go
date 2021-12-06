@@ -42,37 +42,27 @@ func main() {
 	flag.Parse()
 
 	if *devel {
-		l, _ := zap.NewDevelopment()
-		logger = l.Sugar()
-		reflection.Register(grpcServer)
-		//go func() {
-		//err := grpcui.NewGRPCUiWebServer(context.TODO(), fmt.Sprintf("0.0.0.0:%v", *port), zap.NewStdLog(logger.Desugar()))
-		//if err != nil {
-		//logger.Fatal(fmt.Errorf("Failed to serve grpcui web server: %w", err).Error())
-		//}
-		//}()
+		logger, _ = zap.NewDevelopment()
 	} else {
 		logger, _ = zap.NewProduction()
 	}
 
 	grpcServer := grpc.NewServer(
-		grpc.StreamInterceptor(grpc_auth.StreamServerInterceptor(oauth.OAuthMiddleware)),
-		grpc.UnaryInterceptor(grpc_auth.UnaryServerInterceptor(oauth.OAuthMiddleware)),
 		grpc_middleware.WithUnaryServerChain(
 			grpc_zap.UnaryServerInterceptor(logger),
+			grpc_auth.UnaryServerInterceptor(oauth.OAuthMiddleware),
 		),
 		grpc_middleware.WithStreamServerChain(
+			grpc_auth.StreamServerInterceptor(oauth.OAuthMiddleware),
 			grpc_zap.StreamServerInterceptor(logger),
 		),
 	)
 
-	reflection.Register(grpcServer)
 	// Make sure that log statements internal to gRPC library are logged using the zapLogger as well.
 	grpc_zap.ReplaceGrpcLoggerV2(logger)
-	zap.ReplaceGlobals(logger)
 
 	defer logger.Sync() // flushes buffer, if any
-	kubeclient, err := k8sutil.NewClientSetFromKubeconfig(kubeconfig)
+	kubeclient, err := k8sutil.NewClientsetFromKubeconfig(kubeconfig)
 	if err != nil {
 		logger.Fatal(fmt.Sprintf("Failed to get kubernetes client from config: %v", err))
 	}
@@ -81,7 +71,7 @@ func main() {
 		logger.Fatal(fmt.Sprintf("Failed to get chat kubeclient from config: %v", err))
 	}
 
-	certmanagerClient, err := k8sutil.NewCertManagerClientset(kubeconfig)
+	certmanagerClient, err := k8sutil.NewCertManagerClientsetFromKubeconfig(kubeconfig)
 	if err != nil {
 		logger.Fatal(fmt.Sprintf("Failed to get certmanager kube client from config: %v", err))
 	}
@@ -100,12 +90,13 @@ func main() {
 	grpc_health_v1.RegisterHealthServer(grpcServer, healthService)
 
 	if *devel {
-		go func() {
-			err := grpcui.NewGRPCUiWebServer(context.TODO(), fmt.Sprintf("0.0.0.0:%v", *port), zap.NewStdLog(logger))
-			if err != nil {
-				logger.Fatal(fmt.Errorf("Failed to serve grpcui web server: %w", err).Error())
-			}
-		}()
+		reflection.Register(grpcServer)
+		// go func() {
+		// err := grpcui.NewGRPCUiWebServer(context.TODO(), fmt.Sprintf("0.0.0.0:%v", *port), zap.NewStdLog(logger))
+		// if err != nil {
+		// logger.Fatal(fmt.Errorf("Failed to serve grpcui web server: %w", err).Error())
+		// }
+		// }()
 	}
 
 	logger.Info(fmt.Sprintf("Starting grpc server on %v ...", lis.Addr().String()))
