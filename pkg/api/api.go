@@ -25,7 +25,9 @@ func NewAPIServer(kubeclient kubernetes.Interface, chatclient chatv1alpha1.ChatV
 }
 
 func (r *rocketAPIServer) Create(ctx context.Context, req *rocketpb.CreateRequest) (*rocketpb.CreateResponse, error) {
-	err := r.service.Create(ctx, req.GetName(), req.GetNamespace(), req.GetName(), req.GetEmail(), req.GetDatabaseSize(), req.GetReplicas())
+	requestLogger := r.logger.With("name", req.GetName(), "namespace", req.GetNamespace(), "method", "create")
+	requestLogger.Debug("New Request")
+	err := r.service.Create(ctx, req.GetName(), req.GetHost(), req.GetNamespace(), req.GetName(), req.GetEmail(), req.GetDatabaseSize(), req.GetReplicas())
 	if err != nil {
 		return nil, err
 	}

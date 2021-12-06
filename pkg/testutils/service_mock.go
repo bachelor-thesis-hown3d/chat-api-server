@@ -47,8 +47,8 @@ func (m *MockedRocket) Status(name, namespace string, stream rocketpb.RocketServ
 	return args.Error(0)
 }
 
-func (m *MockedRocket) Create(ctx context.Context, name, namespace, user, email string, databaseSize int64, replicas int32) error {
-	args := m.Called(ctx, name, namespace, user, email, databaseSize)
+func (m *MockedRocket) Create(ctx context.Context, host, name, namespace, user, email string, databaseSize int64, replicas int32) error {
+	args := m.Called(ctx, host, name, namespace, user, email, databaseSize)
 	return args.Error(0)
 
 }

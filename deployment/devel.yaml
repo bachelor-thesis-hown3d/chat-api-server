@@ -24,8 +24,8 @@ spec:
       #- image: quay.io/hown3d/chat-api-server:0.0.2
       - image: hown3d/chat-api-server:0.0.2
         name: chat-api-server
-        # args: 
-        #   - "-devel"
+        args: 
+          - "-devel"
         securityContext:
           runAsUser: 999
           runAsGroup: 999 

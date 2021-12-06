@@ -10,7 +10,6 @@ import (
 )
 
 func NewGRPCUiWebServer(ctx context.Context, target string, logger *log.Logger) error {
-
 	cc, err := grpc.DialContext(ctx, target, grpc.WithBlock(), grpc.WithInsecure())
 	if err != nil {
 		return err

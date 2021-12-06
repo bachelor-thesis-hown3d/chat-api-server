@@ -44,6 +44,7 @@ message CreateRequest {
   int64 database_size = 6;
   string email = 7;
   int32 replicas = 8;
+  string host = 9;
 }
 
 message CreateResponse {}

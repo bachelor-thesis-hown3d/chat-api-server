@@ -8,11 +8,13 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-//NewClientSet creates a new kubernetes rest config
-func NewClientSet(kubeconfig *string) (*kubernetes.Clientset, error) {
+func buildConfig(masterUrl string, kubeconfig string) (*rest.Config, error) {
+	return clientcmd.BuildConfigFromFlags("", kubeconfig)
+}
 
-	// use the current context in kubeconfig
-	config, err := configFromFlags(kubeconfig)
+//NewClientSetFromKubeconfig creates a new kubernetes rest config
+func NewClientSetFromKubeconfig(kubeconfig *string) (*kubernetes.Clientset, error) {
+	config, err := buildConfig("", *kubeconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -20,9 +22,20 @@ func NewClientSet(kubeconfig *string) (*kubernetes.Clientset, error) {
 	return kubernetes.NewForConfig(config)
 }
 
-func NewChatClientset(kubeconfig *string) (*chatv1alpha1.ChatV1alpha1Client, error) {
+func NewClientSetFromToken(token string) (*kubernetes.Clientset, error) {
+	config, err := buildConfig("", "")
+	if err != nil {
+		return nil, err
+	}
+	config.BearerToken = token
+	// create the clientset
+	clientset := kubernetes.NewForConfigOrDie(config)
+	return clientset, nil
+}
+
+func NewChatClientsetFromKubeconfig(kubeconfig *string) (*chatv1alpha1.ChatV1alpha1Client, error) {
 	// use the current context in kubeconfig
-	config, err := configFromFlags(kubeconfig)
+	config, err := buildConfig("", *kubeconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -40,4 +53,15 @@ func NewCertManagerClientset(kubeconfig *string) (*certmanager.CertmanagerV1Clie
 
 func configFromFlags(kubeconfig *string) (*rest.Config, error) {
 	return clientcmd.BuildConfigFromFlags("", *kubeconfig)
+}
+
+func NewChatClientSetFromToken(token string) (*chatv1alpha1.ChatV1alpha1Client, error) {
+	config, err := buildConfig("", "")
+	if err != nil {
+		return nil, err
+	}
+	config.BearerToken = token
+	// create the clientset
+	clientset := chatv1alpha1.NewForConfigOrDie(config)
+	return clientset, nil
 }
