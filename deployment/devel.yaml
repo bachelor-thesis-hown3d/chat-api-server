@@ -60,8 +60,15 @@ kind: ClusterRole
 metadata:
   name: chat-api-server
 rules:
+# TODO: only create rbac, other stuff should be created by the app itself
 - apiGroups: ["chat.accso.de"]
   resources: ["rockets"]
+  verbs: ["create","delete", "update", "patch", "get", "watch", "list"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["create","delete", "update", "patch", "get", "watch", "list"]
+- apiGroups: ["cert-manager.io"]
+  resources: ["Issuer"]
   verbs: ["create","delete", "update", "patch", "get", "watch", "list"]
 - apiGroups: [""] # "" indicates the core API group
   resources: ["pods", "pods/log"]

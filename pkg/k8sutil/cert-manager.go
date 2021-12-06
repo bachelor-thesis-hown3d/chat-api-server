@@ -18,8 +18,8 @@ import (
 type messageType string
 
 const (
-  ACME messageType = "ACME"
-  SelfSigned messageType = "Self-signed"
+	ACME       messageType = "ACME"
+	SelfSigned messageType = "Self-signed"
 )
 
 // NewIssuer creates a new Issuer inside the specifed namespace for lets encrypt certificates.
@@ -42,10 +42,10 @@ func NewIssuer(
 	switch t := issuerType; t {
 	case ACME:
 		config.ACME = &acmev1.ACMEIssuer{
-					Server:         "https://acme-v02.api.letsencrypt.org/directory",
-					Email:          email,
-					PreferredChain: "ISRG Root X1",
-					PrivateKey:     secretSelector,
+			Server:         "https://acme-v02.api.letsencrypt.org/directory",
+			Email:          email,
+			PreferredChain: "ISRG Root X1",
+			PrivateKey:     secretSelector,
 		}
 	case SelfSigned:
 		config.SelfSigned = &certmanagerv1.SelfSignedIssuer{}

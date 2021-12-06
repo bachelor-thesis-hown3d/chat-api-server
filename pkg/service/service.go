@@ -45,7 +45,7 @@ func (r *Rocket) setRocketClientToUserClient(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("Error getting token: %v", err)
 	}
-	userClient, err := k8sutil.NewChatClientSetFromToken(userToken)
+	userClient, err := k8sutil.NewChatClientsetFromToken(userToken)
 	if err != nil {
 		return fmt.Errorf("Error creating new chatClient: %v", err)
 	}
@@ -58,7 +58,7 @@ func (r *Rocket) setKubeClientToUserClient(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("Error getting token: %v", err)
 	}
-	userClient, err := k8sutil.NewClientSetFromToken(userToken)
+	userClient, err := k8sutil.NewClientsetFromToken(userToken)
 	if err != nil {
 		return fmt.Errorf("Error creating new chatClient: %v", err)
 	}
@@ -67,7 +67,7 @@ func (r *Rocket) setKubeClientToUserClient(ctx context.Context) error {
 }
 
 func (r *Rocket) Status(name, namespace string, stream rocketpb.RocketService_StatusServer) error {
-	requestLogger := r.logger.With("name", name, "namespace", namespace, "method", "status")
+	l := ctxzap.Extract(stream.Context())
 	selectors := fields.SelectorFromSet(fields.Set{
 		"metadata.name":      name,
 		"metadata.namespace": namespace,
@@ -76,7 +76,7 @@ func (r *Rocket) Status(name, namespace string, stream rocketpb.RocketService_St
 	err := r.setRocketClientToUserClient(stream.Context())
 	if err != nil {
 		err = fmt.Errorf("Error setting rocket Client for kubernetes from token: %v", err)
-		requestLogger.Error(err)
+		l.Error(err.Error())
 		return err
 	}
 
@@ -128,20 +128,20 @@ func (r *Rocket) Create(ctx context.Context, host, name, namespace, user, email 
 	_, err := k8sutil.NewIssuer(ctx, email, name, namespace, k8sutil.SelfSigned, r.kubeclient, r.certmanagerClient)
 	if err != nil {
 		err = fmt.Errorf("Error setting rocket Client for kubernetes from token: %v", err)
-		requestLogger.Error(err)
+		l.Error(err.Error())
 		return err
 	}
 
-	err := r.setRocketClientToUserClient(ctx)
+	err = r.setRocketClientToUserClient(ctx)
 	if err != nil {
 		err = fmt.Errorf("Error setting rocket Client for kubernetes from token: %v", err)
-		requestLogger.Error(err)
+		l.Error(err.Error())
 		return err
 	}
 
 	rocket := &chatv1alpha1.Rocket{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
+			Name: name,
 		},
 		Spec: chatv1alpha1.RocketSpec{
 			Host:     host,
@@ -179,27 +179,21 @@ func (r *Rocket) Update(_ context.Context, req *rocketpb.UpdateRequest) error {
 }
 
 func (r *Rocket) Delete(ctx context.Context, name, namespace string) error {
-	requestLogger := r.logger.With("name", name, "namespace", namespace, "method", "delete")
+	l := ctxzap.Extract(ctx)
 	err := r.setRocketClientToUserClient(ctx)
 	if err != nil {
 		err = fmt.Errorf("Error setting rocket Client for kubernetes from token: %v", err)
-		requestLogger.Error(err)
+		l.Error(err.Error())
 		return err
 	}
 
 	err = r.setKubeClientToUserClient(ctx)
 	if err != nil {
 		err = fmt.Errorf("Error setting kube Client for kubernetes from token: %v", err)
-		requestLogger.Error(err)
+		l.Error(err.Error())
 		return err
 	}
 
-	// get pods from status
-	if err != nil {
-		err = fmt.Errorf("Error setting rocket Client for kubernetes from token: %v", err)
-		requestLogger.Error(err)
-		return err
-	}
 	chatclient := r.chatclient.Rockets(namespace)
 	rocket, err := chatclient.Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
@@ -219,18 +213,14 @@ func (r *Rocket) Delete(ctx context.Context, name, namespace string) error {
 }
 
 func (r *Rocket) Get(ctx context.Context, name, namespace string) (*v1alpha1.Rocket, error) {
-<<<<<<< HEAD
 	l := ctxzap.Extract(ctx)
-=======
-	requestLogger := r.logger.With("name", name, "namespace", namespace, "method", "get")
 	err := r.setRocketClientToUserClient(ctx)
 	if err != nil {
 		err = fmt.Errorf("Error setting rocket Client for kubernetes from token: %v", err)
-		requestLogger.Error(err)
+		l.Error(err.Error())
 		return nil, err
 	}
 
->>>>>>> b9dfba7 (add oauth)
 	// omitting the namespace (having it set to "" will get all rockets from all namespaces)
 	rocket, err := r.chatclient.Rockets(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
@@ -247,18 +237,14 @@ func (r *Rocket) Get(ctx context.Context, name, namespace string) (*v1alpha1.Roc
 }
 
 func (r *Rocket) GetAll(ctx context.Context, namespace string) (*v1alpha1.RocketList, error) {
-<<<<<<< HEAD
 	l := ctxzap.Extract(ctx)
-=======
-	requestLogger := r.logger.With("namespace", namespace, "method", "getall")
 
 	err := r.setRocketClientToUserClient(ctx)
 	if err != nil {
 		err = fmt.Errorf("Error setting rocket Client for kubernetes from token: %v", err)
-		requestLogger.Error(err)
+		l.Error(err.Error())
 		return nil, err
 	}
->>>>>>> b9dfba7 (add oauth)
 	// omitting the namespace (having it set to "" will get all rockets from all namespaces)
 	rockets, err := r.chatclient.Rockets(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -296,25 +282,22 @@ func (r *Rocket) AvailableVersions(repo string) (tagNames []string, err error) {
 }
 
 func (r *Rocket) Logs(name, namespace, pod string, stream rocketpb.RocketService_LogsServer) error {
-<<<<<<< HEAD
 	l := ctxzap.Extract(stream.Context())
-=======
-	requestLogger := r.logger.With("name", name, "namespace", namespace, "method", "logs")
+
 	err := r.setRocketClientToUserClient(stream.Context())
 	if err != nil {
 		err = fmt.Errorf("Error setting rocket Client for kubernetes from token: %v", err)
-		requestLogger.Error(err)
+		l.Error(err.Error())
 		return err
 	}
 
 	err = r.setKubeClientToUserClient(stream.Context())
 	if err != nil {
 		err = fmt.Errorf("Error setting kube Client for kubernetes from token: %v", err)
-		requestLogger.Error(err)
+		l.Error(err.Error())
 		return err
 	}
 
->>>>>>> b9dfba7 (add oauth)
 	rocket, err := r.chatclient.Rockets(namespace).Get(stream.Context(), name, metav1.GetOptions{})
 	if err != nil {
 		if apiErrors.IsNotFound(err) {

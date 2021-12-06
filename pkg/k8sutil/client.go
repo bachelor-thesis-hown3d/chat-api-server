@@ -8,60 +8,62 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-func buildConfig(masterUrl string, kubeconfig string) (*rest.Config, error) {
+func buildConfig(kubeconfig string) (*rest.Config, error) {
 	return clientcmd.BuildConfigFromFlags("", kubeconfig)
 }
 
-//NewClientSetFromKubeconfig creates a new kubernetes rest config
-func NewClientSetFromKubeconfig(kubeconfig *string) (*kubernetes.Clientset, error) {
-	config, err := buildConfig("", *kubeconfig)
+//NewClientsetFromKubeconfig creates a new kubernetes rest config
+func NewClientsetFromKubeconfig(kubeconfig *string) (*kubernetes.Clientset, error) {
+	c, err := buildConfig(*kubeconfig)
 	if err != nil {
 		return nil, err
 	}
 	// create the clientset
-	return kubernetes.NewForConfig(config)
+	return kubernetes.NewForConfig(c)
 }
 
-func NewClientSetFromToken(token string) (*kubernetes.Clientset, error) {
-	config, err := buildConfig("", "")
+func NewClientsetFromToken(token string) (*kubernetes.Clientset, error) {
+	c, err := buildConfig("")
 	if err != nil {
 		return nil, err
 	}
-	config.BearerToken = token
+	c.BearerToken = token
 	// create the clientset
-	clientset := kubernetes.NewForConfigOrDie(config)
-	return clientset, nil
+	return kubernetes.NewForConfig(c)
 }
 
 func NewChatClientsetFromKubeconfig(kubeconfig *string) (*chatv1alpha1.ChatV1alpha1Client, error) {
 	// use the current context in kubeconfig
-	config, err := buildConfig("", *kubeconfig)
+	c, err := buildConfig(*kubeconfig)
 	if err != nil {
 		return nil, err
 	}
 	// create the clientset
-	return chatv1alpha1.NewForConfig(config)
+	return chatv1alpha1.NewForConfig(c)
+}
+func NewChatClientsetFromToken(token string) (*chatv1alpha1.ChatV1alpha1Client, error) {
+	c, err := buildConfig("")
+	if err != nil {
+		return nil, err
+	}
+	c.BearerToken = token
+	// create the clientset
+	return chatv1alpha1.NewForConfig(c)
 }
 
-func NewCertManagerClientset(kubeconfig *string) (*certmanager.CertmanagerV1Client, error) {
-	c, err := configFromFlags(kubeconfig)
+func NewCertManagerClientsetFromKubeconfig(kubeconfig *string) (*certmanager.CertmanagerV1Client, error) {
+	c, err := buildConfig(*kubeconfig)
 	if err != nil {
 		return nil, err
 	}
 	return certmanager.NewForConfig(c)
 }
-
-func configFromFlags(kubeconfig *string) (*rest.Config, error) {
-	return clientcmd.BuildConfigFromFlags("", *kubeconfig)
-}
-
-func NewChatClientSetFromToken(token string) (*chatv1alpha1.ChatV1alpha1Client, error) {
-	config, err := buildConfig("", "")
+func NewCertManagerClientsetFromToken(token string) (*certmanager.CertmanagerV1Client, error) {
+	c, err := buildConfig("")
 	if err != nil {
 		return nil, err
 	}
-	config.BearerToken = token
-	// create the clientset
-	clientset := chatv1alpha1.NewForConfigOrDie(config)
-	return clientset, nil
+	c.BearerToken = token
+
+	return certmanager.NewForConfig(c)
 }

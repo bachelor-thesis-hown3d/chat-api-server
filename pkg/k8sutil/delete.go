@@ -9,6 +9,7 @@ import (
 )
 
 func DeleteVolumeClaim(ctx context.Context, rocket *chatv1alpha1.Rocket, namespace string, kubeclient kubernetes.Interface) error {
+	// get pods from status
 	coreClient := kubeclient.CoreV1()
 	for _, pod := range rocket.Status.Pods {
 		pod, err := coreClient.Pods(namespace).Get(ctx, pod.Name, metav1.GetOptions{})
