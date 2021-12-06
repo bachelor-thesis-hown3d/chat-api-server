@@ -200,6 +200,7 @@ func TestRocket_Create(t *testing.T) {
 		name         string
 		namespace    string
 		user         string
+		host         string
 		email        string
 		databaseSize int64
 		replicas     int32
@@ -216,7 +217,10 @@ func TestRocket_Create(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(), testutils.NewFakeCertManagerClient())
 			if err := s.Create(tt.args.ctx, tt.args.name, tt.args.namespace, tt.args.user, tt.args.email, tt.args.databaseSize, tt.args.replicas); (err != nil) != tt.wantErr {
-				t.Errorf("Rocket.Create() error = %v, wantErr %v", err, tt.wantErr)
+			r := &Rocket{
+				kubeclient: tt.fields.kubeclient,
+				chatclient: tt.fields.chatclient,
+				logger:     tt.fields.logger,
 			}
 		})
 	}

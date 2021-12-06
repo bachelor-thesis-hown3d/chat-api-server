@@ -12,7 +12,7 @@ type Interface interface {
 	Logs(name, namespace, pod string, stream rocketpb.RocketService_LogsServer) error
 	GetAll(ctx context.Context, namespace string) (*v1alpha1.RocketList, error)
 	Get(ctx context.Context, name, namespace string) (*v1alpha1.Rocket, error)
-	Create(ctx context.Context, name, namespace, user, email string, databaseSize int64, replicas int32) error
+	Create(ctx context.Context, host, name, namespace, user, email string, databaseSize int64, replicas int32) error
 	Status(name, namespace string, stream rocketpb.RocketService_StatusServer) error
 	Delete(ctx context.Context, name, namespace string) error
 	AvailableVersions(repo string) ([]string, error)

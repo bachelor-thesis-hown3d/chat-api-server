@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -10,11 +9,12 @@ import (
 	"path/filepath"
 
 	"github.com/bachelor-thesis-hown3d/chat-api-server/pkg/api"
-	"github.com/bachelor-thesis-hown3d/chat-api-server/pkg/grpcui"
 	"github.com/bachelor-thesis-hown3d/chat-api-server/pkg/health"
 	"github.com/bachelor-thesis-hown3d/chat-api-server/pkg/k8sutil"
+	"github.com/bachelor-thesis-hown3d/chat-api-server/pkg/oauth"
 	"github.com/bachelor-thesis-hown3d/chat-api-server/pkg/service"
 	rocketpb "github.com/bachelor-thesis-hown3d/chat-api-server/proto/rocket/v1"
+	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health/grpc_health_v1"
@@ -42,13 +42,22 @@ func main() {
 	flag.Parse()
 
 	if *devel {
-		logger, _ = zap.NewDevelopment()
-
+		l, _ := zap.NewDevelopment()
+		logger = l.Sugar()
+		reflection.Register(grpcServer)
+		//go func() {
+		//err := grpcui.NewGRPCUiWebServer(context.TODO(), fmt.Sprintf("0.0.0.0:%v", *port), zap.NewStdLog(logger.Desugar()))
+		//if err != nil {
+		//logger.Fatal(fmt.Errorf("Failed to serve grpcui web server: %w", err).Error())
+		//}
+		//}()
 	} else {
 		logger, _ = zap.NewProduction()
 	}
 
 	grpcServer := grpc.NewServer(
+		grpc.StreamInterceptor(grpc_auth.StreamServerInterceptor(oauth.OAuthMiddleware)),
+		grpc.UnaryInterceptor(grpc_auth.UnaryServerInterceptor(oauth.OAuthMiddleware)),
 		grpc_middleware.WithUnaryServerChain(
 			grpc_zap.UnaryServerInterceptor(logger),
 		),
@@ -63,11 +72,11 @@ func main() {
 	zap.ReplaceGlobals(logger)
 
 	defer logger.Sync() // flushes buffer, if any
-	kubeclient, err := k8sutil.NewClientSet(kubeconfig)
+	kubeclient, err := k8sutil.NewClientSetFromKubeconfig(kubeconfig)
 	if err != nil {
 		logger.Fatal(fmt.Sprintf("Failed to get kubernetes client from config: %v", err))
 	}
-	chatclient, err := k8sutil.NewChatClientset(kubeconfig)
+	chatclient, err := k8sutil.NewChatClientsetFromKubeconfig(kubeconfig)
 	if err != nil {
 		logger.Fatal(fmt.Sprintf("Failed to get chat kubeclient from config: %v", err))
 	}

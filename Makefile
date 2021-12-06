@@ -23,14 +23,20 @@ deps:
 	GOBIN=$(BIN) go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 	GOBIN=$(BIN) go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
-run:
-	air
+dev:
+	skaffold dev
 
-docker-build:
-	docker build . -t quay.io/hown3d/chat-api-server:$(VERSION)
+client:
+	cd cmd/client; go run client.go -host localhost
 
-docker-push:
+docker-build: build
+  DOCKER_BUILDKIT=1 docker build --tag=$IMAGE --build-arg BUILD_ENV=builder-binary $(VERSION)
+
+docker-push: docker-build
 	docker push quay.io/hown3d/chat-api-server:$(VERSION)
+
+build:
+	go build -o _output/server ./cmd/server/main.go 
 
 fmt:
 	go fmt ./...

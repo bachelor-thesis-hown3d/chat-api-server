@@ -44,3 +44,10 @@ func (c healthChecker) Watch(req *grpc_health_v1.HealthCheckRequest, server grpc
 		Status: grpc_health_v1.HealthCheckResponse_SERVING,
 	})
 }
+
+// AuthFuncOverride implements the ServiceAuthFuncOverride Interface from grpc_auth.
+// https://github.com/grpc-ecosystem/go-grpc-middleware/blob/560829fc74fcf9a69b7ab01d484f8b8961dc734b/auth/auth.go#L30
+// This is needed to disable auth checking for the health service
+func (c healthChecker) AuthFuncOverride(ctx context.Context, fullMethodName string) (context.Context, error) {
+	return ctx, nil
+}
