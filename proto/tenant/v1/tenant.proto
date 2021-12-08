@@ -1,0 +1,26 @@
+
+syntax = "proto3";
+
+package tenant.v1;
+
+option go_package = "github.com/hown3d/chat-apiserver/proto/v1;tenant";
+// import "google/api/annotations.proto";
+
+service TenantService {
+  rpc Register(RegisterRequest) returns (RegisterResponse) {}
+}
+
+message RegisterRequest {
+  enum Size {
+    SIZE_UNSPECIFIED = 0;
+    // 1 vCPU and 2Gi Memory
+    SIZE_SMALL = 1;
+    // 2 vCPU and 4Gi Memory
+    SIZE_MEDIUM = 2;
+    // 4 vCPU and 8Gi Memory
+    SIZE_LARGE = 3;
+  }
+  Size size = 1;
+}
+
+message RegisterResponse {}

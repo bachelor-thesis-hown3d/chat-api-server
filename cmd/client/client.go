@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
 	"time"
@@ -13,6 +15,7 @@ import (
 	"github.com/bachelor-thesis-hown3d/chat-api-server-client/oauth"
 	rocketpb "github.com/bachelor-thesis-hown3d/chat-api-server/proto/rocket/v1"
 	"github.com/pkg/browser"
+	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -29,43 +32,72 @@ const (
 var (
 	port        = flag.Int("port", 10000, "Port of the api server")
 	host        = flag.String("host", "", "Hostname of the api server")
-	redirectURI = flag.String("redirectUri", "http://localhost:7070", "address for the oauth server to listen on")
+	redirectURI = flag.String("redirectUrl", "http://localhost:7070", "address for the oauth server to listen on")
+	issuerURI   = flag.String("issuerUrl", "https://localhost:8443/auth/realms/kubernetes", "address for the oauth server to listen on")
 )
 
-func startOAuthAndWait() {
+func startOAuthAndWaitForToken(clientID, clientSecret string) string {
 	// parse the redirect URL for the port number
-	u, err := url.Parse(*redirectURI)
+	redirectURL, err := url.Parse(*redirectURI)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// oauth
-	serv, lis, err := oauth.NewServer(u)
+	// parse the redirect URL for the port number
+	issuerURL, err := url.Parse(*issuerURI)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// since we use a bad ssl certificate, embed a Insecure HTTP Client for oauth to use
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, oauth2.HTTPClient, http.DefaultClient)
+
+	serv, lis, err := oauth.NewServer(ctx, clientID, clientSecret, redirectURL, issuerURL)
 	if err != nil {
 		log.Fatalf("Can't create oauth Server: %v", err)
 	}
 
-	oauth.StartWebServer(serv, lis)
-	u.Path = "/auth"
-	browser.OpenURL(u.String())
+	ch := make(chan error, 1)
+	// start the oauth webserver and wait for the token
+	go oauth.StartWebServer(serv, lis)
+	redirectURL.Path = "/auth"
+	browser.OpenURL(redirectURL.String())
 
-	for oauth.Token == nil {
-		fmt.Println("AccessToken not set yet, sleeping...")
-		time.Sleep(1 * time.Second)
+	go func() {
+		select {
+		case err := <-ch:
+			log.Fatal(err)
+		}
+	}()
+	for oauth.IDToken == nil {
+		fmt.Println("OAuth token not retrieved, sleeping...")
+		time.Sleep(3 * time.Second)
 	}
-
-	oauth.StopWebServer(serv)
+	return *oauth.IDToken
 }
 
 func main() {
-
 	flag.Parse()
 	if *host == "" {
 		fmt.Println("Host must be set!")
 		os.Exit(1)
 	}
 
-	startOAuthAndWait()
+	clientSecret := os.Getenv("OAUTH2_CLIENT_SECRET")
+	clientID := os.Getenv("OAUTH2_CLIENT_ID")
+
+	if clientID == "" {
+		log.Fatal("OAUTH2_CLIENT_ID Environment Variable must be set!")
+	}
+	if clientSecret == "" {
+		log.Fatal("OAUTH2_CLIENT_SECRET Environment Variable must be set!")
+	}
+
+	token := startOAuthAndWaitForToken(clientID, clientSecret)
+
+	fmt.Println(token)
 
 	ctx := context.Background()
 	conn, err := grpc.DialContext(ctx, fmt.Sprintf("%v:%v", *host, *port), grpc.WithInsecure())
@@ -75,7 +107,7 @@ func main() {
 
 	client := rocketpb.NewRocketServiceClient(conn)
 
-	md := metadata.Pairs("authorization", "bearer "+*oauth.Token)
+	md := metadata.Pairs("authorization", "bearer "+token)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	defaultFlow(ctx, client)
@@ -109,7 +141,6 @@ func defaultFlow(ctx context.Context, client rocketpb.RocketServiceClient) {
 	}
 
 	_, err = client.Create(ctx, &rocketpb.CreateRequest{
-		User:         user,
 		Name:         name,
 		Namespace:    namespace,
 		DatabaseSize: 10,

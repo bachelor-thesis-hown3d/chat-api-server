@@ -4,27 +4,38 @@ BUF=bin/buf
 
 VERSION=0.0.2
 
-proto-build: proto-lint
+proto-build: buf deps proto-lint
 	$(BUF) build
 
-proto-generate: deps proto-lint
+proto-generate: buf deps proto-lint
 	$(BUF) generate
 
-proto-lint:
+proto-lint: buf
 	$(BUF) lint	
 
-buf:
-	@mkdir bin/ || true
+proto-mod: buf
+	cd proto && ../$(BUF) mod update
+
+.ONESHELL:
+
+bin_dir: 
+	@mkdir bin/ &>/dev/null || true
+
+buf: bin_dir
+	@if test -f $(BUF);then echo "buf binary exists, exiting" && exit 0; fi
 	curl -sSL "https://github.com/bufbuild/buf/releases/download/v$(BUF_VERSION)/buf-$(shell uname -s)-$(shell uname -m)" -o $(BUF)
 	chmod +x $(BUF)
 
-deps:
-	@mkdir bin/ || true
-	GOBIN=$(BIN) go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-	GOBIN=$(BIN) go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+deps: bin_dir
+	@mkdir bin/ &>/dev/null || true
+	GOBIN=$(BIN) go install \
+    github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway \
+    github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2 \
+    google.golang.org/protobuf/cmd/protoc-gen-go \
+    google.golang.org/grpc/cmd/protoc-gen-go-grpc
 
 dev:
-	skaffold dev
+	skaffold dev --port-forward=pods
 
 client:
 	cd cmd/client; go run client.go -host localhost

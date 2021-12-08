@@ -1,4 +1,4 @@
-package service
+package rocket
 
 import (
 	"context"
@@ -30,7 +30,7 @@ func TestRocket_Update(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.faked.rocket), testutils.NewFakeCertManagerClient())
+			s := NewRocketServiceImpl(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.faked.rocket))
 			err := s.Update(context.TODO(), nil)
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -58,7 +58,7 @@ func TestRocket_Delete(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.faked.rocket), testutils.NewFakeCertManagerClient())
+			s := NewRocketServiceImpl(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.faked.rocket))
 			err := s.Delete(context.TODO(), tt.args.name, tt.args.namespace)
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -104,7 +104,7 @@ func TestRocket_Get(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.faked.rocket), testutils.NewFakeCertManagerClient())
+			s := NewRocketServiceImpl(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.faked.rocket))
 			rocket, err := s.Get(context.TODO(), tt.args.name, TestNamespace)
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -148,7 +148,7 @@ func TestRocket_GetAll(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.faked.rockets...), testutils.NewFakeCertManagerClient())
+			s := NewRocketServiceImpl(fake.NewSimpleClientset(), testutils.NewFakeChatClient(tt.faked.rockets...))
 			rockets, err := s.GetAll(context.TODO(), TestNamespace)
 			if err != nil && tt.wantErr {
 				t.Fatalf("Error on getAll")
@@ -181,7 +181,7 @@ func TestRocket_Logs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(), testutils.NewFakeCertManagerClient())
+			s := NewRocketServiceImpl(fake.NewSimpleClientset(), testutils.NewFakeChatClient())
 			err := s.Logs(tt.args.name, TestNamespace, tt.args.pod, nil)
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -215,7 +215,7 @@ func TestRocket_Create(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewRocket(fake.NewSimpleClientset(), testutils.NewFakeChatClient(), testutils.NewFakeCertManagerClient())
+			s := NewRocketServiceImpl(fake.NewSimpleClientset(), testutils.NewFakeChatClient())
 			if err := s.Create(tt.args.ctx, tt.args.host, tt.args.name, tt.args.namespace, tt.args.user, tt.args.email, tt.args.databaseSize, tt.args.replicas); (err != nil) && tt.wantErr {
 				t.Fatalf("Error on create: %v", err)
 			}

@@ -1,4 +1,4 @@
-package api
+package tenant
 
 const (
 	largeCPU  int64 = 4000

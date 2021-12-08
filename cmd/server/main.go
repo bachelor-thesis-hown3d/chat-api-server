@@ -1,44 +1,44 @@
 package main
 
 import (
-	"errors"
+	"context"
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"net"
-	"os"
-	"path/filepath"
+	"net/http"
+	"net/url"
 
-	"github.com/bachelor-thesis-hown3d/chat-api-server/pkg/api"
+	rocketApi "github.com/bachelor-thesis-hown3d/chat-api-server/pkg/api/rocket"
+	tenantApi "github.com/bachelor-thesis-hown3d/chat-api-server/pkg/api/tenant"
+	"github.com/bachelor-thesis-hown3d/chat-api-server/pkg/grpc/gateway"
 	"github.com/bachelor-thesis-hown3d/chat-api-server/pkg/health"
 	"github.com/bachelor-thesis-hown3d/chat-api-server/pkg/k8sutil"
 	"github.com/bachelor-thesis-hown3d/chat-api-server/pkg/oauth"
-	"github.com/bachelor-thesis-hown3d/chat-api-server/pkg/service"
+	rocketService "github.com/bachelor-thesis-hown3d/chat-api-server/pkg/service/rocket"
+	tenantService "github.com/bachelor-thesis-hown3d/chat-api-server/pkg/service/tenant"
 	rocketpb "github.com/bachelor-thesis-hown3d/chat-api-server/proto/rocket/v1"
+	tenantpb "github.com/bachelor-thesis-hown3d/chat-api-server/proto/tenant/v1"
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
+	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	"go.uber.org/zap"
+	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
-	"k8s.io/client-go/util/homedir"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 )
 
 var (
-	port       = flag.Int("port", 10000, "The server port")
-	devel      = flag.Bool("devel", false, "Set the api-server to development mode (nice log, grpcui etc.)")
-	kubeconfig *string
-	logger     *zap.Logger
+	port           = flag.Int("port", 10000, "The server port")
+	devel          = flag.Bool("devel", false, "Set the api-server to development mode (nice log, grpcui etc.)")
+	oauthClientID  = flag.String("oauth-client-id", "kubernetes", "oauth Client ID of the issuer")
+	oauthIssuerUrl = flag.String("oauth-issuer-url", "https://localhost:8443/auth/realms/kubernetes", "oauth Client ID of the issuer")
+	logger         *zap.Logger
 )
 
 func main() {
-	file := filepath.Join(homedir.HomeDir(), ".kube", "config")
-	if _, err := os.Stat(file); !errors.Is(err, os.ErrNotExist) {
-		kubeconfig = flag.String("kubeconfig", file, "(optional) absolute path to the kubeconfig file")
-	} else {
-		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
-	}
 	flag.Parse()
 
 	if *devel {
@@ -59,19 +59,19 @@ func main() {
 	)
 
 	// Make sure that log statements internal to gRPC library are logged using the zapLogger as well.
-	grpc_zap.ReplaceGrpcLoggerV2(logger)
+	//grpc_zap.ReplaceGrpcLoggerV2(logger)
 
 	defer logger.Sync() // flushes buffer, if any
-	kubeclient, err := k8sutil.NewClientsetFromKubeconfig(kubeconfig)
+	kubeclient, err := k8sutil.NewClientsetFromKubeconfig()
 	if err != nil {
 		logger.Fatal(fmt.Sprintf("Failed to get kubernetes client from config: %v", err))
 	}
-	chatclient, err := k8sutil.NewChatClientsetFromKubeconfig(kubeconfig)
+	chatclient, err := k8sutil.NewChatClientsetFromKubeconfig()
 	if err != nil {
 		logger.Fatal(fmt.Sprintf("Failed to get chat kubeclient from config: %v", err))
 	}
 
-	certmanagerClient, err := k8sutil.NewCertManagerClientsetFromKubeconfig(kubeconfig)
+	certmanagerClient, err := k8sutil.NewCertManagerClientsetFromKubeconfig()
 	if err != nil {
 		logger.Fatal(fmt.Sprintf("Failed to get certmanager kube client from config: %v", err))
 	}
@@ -83,10 +83,16 @@ func main() {
 
 	healthService := health.NewHealthChecker(kubeclient)
 
-	service := service.NewRocket(kubeclient, chatclient, certmanagerClient)
-	api := api.NewAPIServer(kubeclient, chatclient, service)
+	// rocket proto Service
+	rocketService := rocketService.NewRocketServiceImpl(kubeclient, chatclient)
+	rocketAPI := rocketApi.NewAPIServer(rocketService)
+	rocketpb.RegisterRocketServiceServer(grpcServer, rocketAPI)
 
-	rocketpb.RegisterRocketServiceServer(grpcServer, api)
+	// tenant proto Service
+	tenantService := tenantService.NewTenantServiceImpl(kubeclient, certmanagerClient)
+	tenantAPI := tenantApi.NewAPIServer(tenantService)
+	tenantpb.RegisterTenantServiceServer(grpcServer, tenantAPI)
+
 	grpc_health_v1.RegisterHealthServer(grpcServer, healthService)
 
 	if *devel {
@@ -99,9 +105,30 @@ func main() {
 		// }()
 	}
 
+	//start gateway server
+	go gateway.Run(logger, lis.Addr().String(), fmt.Sprintf(":%v", *port+1))
+
+	//setup oauth issuer
+	ctx := context.Background()
+	if *devel {
+		// since we use a bad ssl certificate on localhost, embed a Insecure HTTP Client for oauth to use
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		ctx = context.WithValue(ctx, oauth2.HTTPClient, http.DefaultClient)
+
+	}
+	// parse the redirect URL for the port number
+	issuerURL, err := url.Parse(*oauthIssuerUrl)
+	if err != nil {
+		logger.Fatal(err.Error())
+	}
+	provider, err := oauth.NewOAuth2Provider(ctx, issuerURL)
+	if err != nil {
+		logger.Fatal(err.Error())
+	}
+	oauth.NewOAuth2Verifier(provider, *oauthClientID)
+
 	logger.Info(fmt.Sprintf("Starting grpc server on %v ...", lis.Addr().String()))
 	if err := grpcServer.Serve(lis); err != nil {
 		logger.Fatal(fmt.Sprintf("Failed to start grpc Server %v", err))
 	}
-
 }

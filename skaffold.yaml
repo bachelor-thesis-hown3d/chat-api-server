@@ -5,15 +5,19 @@ metadata:
 build:
   artifacts:
   - image: hown3d/chat-api-server
-    custom:
-      buildCommand: |
-        CGO_ENABLED=0 go build -o _output/server ./cmd/server/main.go 
-        DOCKER_BUILDKIT=1 docker build --tag=$IMAGE --build-arg BUILD_ENV=builder-binary .
-      dependencies:
-        dockerfile:
-          path: Dockerfile
-          buildArgs:
-            BUILD_ENV: builder-binary
+    docker:
+      dockerfile: Dockerfile
+  local:
+    useBuildkit: true
+    #custom:
+    #  buildCommand: |
+    #    CGO_ENABLED=0 go build -o _output/server ./cmd/server/main.go 
+    #    DOCKER_BUILDKIT=1 docker build --tag=$IMAGE --build-arg BUILD_ENV=builder-binary .
+      # dependencies:
+      #   dockerfile:
+      #     path: Dockerfile
+      #     buildArgs:
+      #       BUILD_ENV: builder-binary
 
     # docker:
     #   dockerfile: Dockerfile

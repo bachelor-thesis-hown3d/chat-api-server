@@ -5,9 +5,17 @@ plugins:
     path: bin/protoc-gen-go
     opt:
       - paths=source_relative
+
   - name: go-grpc
     out: proto
     path: bin/protoc-gen-go-grpc
     opt:
       - paths=source_relative
       - require_unimplemented_servers=false
+
+  - name: grpc-gateway
+    out: proto
+    path: bin/protoc-gen-grpc-gateway
+    opt:
+      - paths=source_relative
+      - generate_unbound_methods=true

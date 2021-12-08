@@ -15,23 +15,25 @@ import (
 	corev1Client "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
-type messageType string
+type messageType struct{}
 
-const (
-	ACME       messageType = "ACME"
-	SelfSigned messageType = "Self-signed"
+var (
+	ACME       messageType
+	SelfSigned messageType
 )
 
 // NewIssuer creates a new Issuer inside the specifed namespace for lets encrypt certificates.
 // It returns the name of the created issuer and an error, if the create failed
 func NewIssuer(
 	ctx context.Context,
-	email, name, namespace string,
+	email string,
+	userName string,
+	namespace string,
 	issuerType messageType,
 	kubeclient kubernetes.Interface,
 	client certmanagerClient.CertmanagerV1Interface) (string, error) {
 
-	secretSelector, err := privateKeySecret(ctx, name, kubeclient.CoreV1().Secrets(namespace))
+	secretSelector, err := privateKeySecret(ctx, userName, kubeclient.CoreV1().Secrets(namespace))
 	if err != nil {
 		return "", err
 	}
@@ -55,7 +57,7 @@ func NewIssuer(
 
 	i := &certmanagerv1.Issuer{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: name + "-issuer",
+			Name: userName + "-issuer",
 		},
 		Spec: certmanagerv1.IssuerSpec{
 			IssuerConfig: config,
