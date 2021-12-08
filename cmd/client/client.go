@@ -14,6 +14,7 @@ import (
 
 	"github.com/bachelor-thesis-hown3d/chat-api-server-client/oauth"
 	rocketpb "github.com/bachelor-thesis-hown3d/chat-api-server/proto/rocket/v1"
+	tenantpb "github.com/bachelor-thesis-hown3d/chat-api-server/proto/tenant/v1"
 	"github.com/pkg/browser"
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
@@ -24,7 +25,7 @@ import (
 
 const (
 	name      string = "test-rocket"
-	namespace string = "default"
+	namespace string = "testuser"
 	user      string = "TestUser"
 	email     string = "testUser@foo.bar"
 )
@@ -105,34 +106,43 @@ func main() {
 		log.Fatalf("Failed to dial %v:%v: %v", *host, *port, err)
 	}
 
-	client := rocketpb.NewRocketServiceClient(conn)
+	rocketClient := rocketpb.NewRocketServiceClient(conn)
+	tenantClient := tenantpb.NewTenantServiceClient(conn)
 
 	md := metadata.Pairs("authorization", "bearer "+token)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	defaultFlow(ctx, client)
+	defaultFlow(ctx, rocketClient, tenantClient)
 }
 
-func defaultFlow(ctx context.Context, client rocketpb.RocketServiceClient) {
+func defaultFlow(ctx context.Context, rocketClient rocketpb.RocketServiceClient, tenantClient tenantpb.TenantServiceClient) {
 
-	defer client.Delete(ctx, &rocketpb.DeleteRequest{Name: name, Namespace: namespace})
+	defer rocketClient.Delete(ctx, &rocketpb.DeleteRequest{Name: name, Namespace: namespace})
 
-	versions, err := client.AvailableVersions(ctx, &rocketpb.AvailableVersionsRequest{Image: rocketpb.AvailableVersionsRequest_IMAGE_ROCKETCHAT})
+	versions, err := rocketClient.AvailableVersions(ctx, &rocketpb.AvailableVersionsRequest{Image: rocketpb.AvailableVersionsRequest_IMAGE_ROCKETCHAT})
 	if err != nil {
-		fmt.Println(fmt.Errorf("Can't get available version of rocketchat: %w", err))
+		log.Fatal(fmt.Errorf("Can't get available version of rocketchat: %w", err))
 	}
 	for i := 0; i < 5; i++ {
 		fmt.Printf("Rocket Tag: %v\n", versions.Tags[i])
 	}
-	versions, err = client.AvailableVersions(ctx, &rocketpb.AvailableVersionsRequest{Image: rocketpb.AvailableVersionsRequest_IMAGE_MONGODB})
+	versions, err = rocketClient.AvailableVersions(ctx, &rocketpb.AvailableVersionsRequest{Image: rocketpb.AvailableVersionsRequest_IMAGE_MONGODB})
 	if err != nil {
-		fmt.Println(fmt.Errorf("Can't get available version of mongodb: %w", err))
+		log.Fatal(fmt.Errorf("Can't get available version of mongodb: %w", err))
 	}
 	for i := 0; i < 5; i++ {
 		fmt.Printf("Mongodb Tag: %v\n", versions.Tags[i])
 	}
 	//
-	allRockets, err := client.GetAll(ctx, &rocketpb.GetAllRequest{})
+
+	_, err = tenantClient.Register(ctx, &tenantpb.RegisterRequest{Size: tenantpb.RegisterRequest_SIZE_SMALL})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	allRockets, err := rocketClient.GetAll(ctx, &rocketpb.GetAllRequest{
+		Namespace: namespace,
+	})
 	if err != nil {
 		log.Fatalf("Can't get all rockets: %v", err)
 	}
@@ -140,7 +150,7 @@ func defaultFlow(ctx context.Context, client rocketpb.RocketServiceClient) {
 		fmt.Printf("%v: %v - %v\n", index, rocket.Name, rocket.Namespace)
 	}
 
-	_, err = client.Create(ctx, &rocketpb.CreateRequest{
+	_, err = rocketClient.Create(ctx, &rocketpb.CreateRequest{
 		Name:         name,
 		Namespace:    namespace,
 		DatabaseSize: 10,
@@ -153,7 +163,7 @@ func defaultFlow(ctx context.Context, client rocketpb.RocketServiceClient) {
 		log.Fatalf("Error creating new rocket: %v", err)
 	}
 
-	newRocket, err := client.Get(ctx, &rocketpb.GetRequest{
+	newRocket, err := rocketClient.Get(ctx, &rocketpb.GetRequest{
 		Name:      name,
 		Namespace: namespace,
 	})
@@ -162,7 +172,7 @@ func defaultFlow(ctx context.Context, client rocketpb.RocketServiceClient) {
 	}
 	//
 	// watch the rocket to get ready
-	statusClient, err := client.Status(ctx, &rocketpb.StatusRequest{Name: newRocket.Name, Namespace: newRocket.Namespace})
+	statusClient, err := rocketClient.Status(ctx, &rocketpb.StatusRequest{Name: newRocket.Name, Namespace: newRocket.Namespace})
 	if err != nil {
 		log.Fatalf("Error watching new rocket: %v", err)
 	}
@@ -183,7 +193,7 @@ func defaultFlow(ctx context.Context, client rocketpb.RocketServiceClient) {
 		ready = msg.Ready
 	}
 	//
-	logsClient, err := client.Logs(ctx, &rocketpb.LogsRequest{Name: newRocket.Name, Namespace: newRocket.Namespace})
+	logsClient, err := rocketClient.Logs(ctx, &rocketpb.LogsRequest{Name: newRocket.Name, Namespace: newRocket.Namespace})
 	for {
 		// blocking
 		msg, err := logsClient.Recv()

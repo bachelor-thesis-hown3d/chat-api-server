@@ -10,6 +10,7 @@ import (
 	certmanagerClient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 
 	corev1 "k8s.io/api/core/v1"
+	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	corev1Client "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -64,7 +65,10 @@ func NewIssuer(
 		},
 	}
 	issuer, err := issuersClient.Create(ctx, i, metav1.CreateOptions{})
-	return issuer.Name, err
+	if !apiErrors.IsAlreadyExists(err) {
+		return "", err
+	}
+	return issuer.Name, nil
 }
 
 func privateKeySecret(ctx context.Context, name string, client corev1Client.SecretInterface) (v1.SecretKeySelector, error) {
@@ -76,7 +80,7 @@ func privateKeySecret(ctx context.Context, name string, client corev1Client.Secr
 	}
 
 	_, err := client.Create(ctx, s, metav1.CreateOptions{})
-	if err != nil {
+	if !apiErrors.IsAlreadyExists(err) {
 		return v1.SecretKeySelector{}, err
 	}
 
