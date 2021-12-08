@@ -9,6 +9,7 @@ import (
 	chatv1alpha1 "github.com/bachelor-thesis-hown3d/chat-operator/pkg/client/clientset/versioned/typed/chat.accso.de/v1alpha1"
 	certmanager "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/pkg/apis/clientauthentication"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
@@ -27,22 +28,36 @@ func init() {
 	}
 }
 
-func buildConfig(overrides *clientcmd.ConfigOverrides) (*rest.Config, error) {
+func buildConfig() (*rest.Config, error) {
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 
-	config := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
+	config := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
 	return config.ClientConfig()
 }
 
 func buildConfigFromToken(token string) (*rest.Config, error) {
-	overrides := &clientcmd.ConfigOverrides{ClusterDefaults: clientcmd.ClusterDefaults}
-	overrides.AuthInfo.Token = token
-	return buildConfig(overrides)
+	restConfig, err := buildConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	restConfig, err = rest.ExecClusterToConfig(&clientauthentication.Cluster{
+		Server:                   restConfig.Host,
+		TLSServerName:            restConfig.ServerName,
+		CertificateAuthorityData: restConfig.CAData,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	restConfig.BearerToken = token
+	return restConfig, nil
 }
 
 //NewClientsetFromKubeconfig creates a new kubernetes rest config
 func NewClientsetFromKubeconfig() (*kubernetes.Clientset, error) {
-	c, err := buildConfig(&clientcmd.ConfigOverrides{})
+	c, err := buildConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +76,7 @@ func NewClientsetFromToken(token string) (*kubernetes.Clientset, error) {
 
 func NewChatClientsetFromKubeconfig() (*chatv1alpha1.ChatV1alpha1Client, error) {
 	// use the current context in kubeconfig
-	c, err := buildConfig(&clientcmd.ConfigOverrides{})
+	c, err := buildConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -78,10 +93,11 @@ func NewChatClientsetFromToken(token string) (*chatv1alpha1.ChatV1alpha1Client, 
 }
 
 func NewCertManagerClientsetFromKubeconfig() (*certmanager.CertmanagerV1Client, error) {
-	c, err := buildConfig(&clientcmd.ConfigOverrides{})
+	c, err := buildConfig()
 	if err != nil {
 		return nil, err
 	}
+
 	return certmanager.NewForConfig(c)
 }
 func NewCertManagerClientsetFromToken(token string) (*certmanager.CertmanagerV1Client, error) {
