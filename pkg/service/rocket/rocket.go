@@ -1,4 +1,4 @@
-package service
+package rocket
 
 import (
 	"context"
@@ -12,7 +12,6 @@ import (
 	chatClient "github.com/bachelor-thesis-hown3d/chat-operator/pkg/client/clientset/versioned/typed/chat.accso.de/v1alpha1"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 
-	certmanager "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -27,16 +26,14 @@ import (
 )
 
 type Rocket struct {
-	kubeclient        kubernetes.Interface
-	chatclient        chatClient.ChatV1alpha1Interface
-	certmanagerClient certmanager.CertmanagerV1Interface
+	kubeclient kubernetes.Interface
+	chatclient chatClient.ChatV1alpha1Interface
 }
 
-func NewRocket(kubeclient kubernetes.Interface, chatclient chatClient.ChatV1alpha1Interface, certmanagerClient certmanager.CertmanagerV1Interface) *Rocket {
+func NewRocketServiceImpl(kubeclient kubernetes.Interface, chatclient chatClient.ChatV1alpha1Interface) *Rocket {
 	return &Rocket{
-		kubeclient:        kubeclient,
-		chatclient:        chatclient,
-		certmanagerClient: certmanagerClient,
+		kubeclient: kubeclient,
+		chatclient: chatclient,
 	}
 }
 
@@ -103,36 +100,10 @@ func (r *Rocket) Status(name, namespace string, stream rocketpb.RocketService_St
 	}
 }
 
-func (r *Rocket) Register(ctx context.Context, user string, cpu, mem int64) error {
-	l := ctxzap.Extract(ctx)
-	err := k8sutil.CreateNamespaceIfNotExist(ctx, user, r.kubeclient)
-	if err != nil {
-		err = fmt.Errorf("Error creating namespace: %v", err)
-		l.Error(err.Error())
-		return err
-	}
-
-	err = k8sutil.CreateResourceQuotaIfNotExist(ctx, cpu, mem, user, r.kubeclient)
-	if err != nil {
-		err = fmt.Errorf("Error creating resource Quota: %v", err)
-		l.Error(err.Error())
-		return err
-	}
-	return nil
-}
-
 func (r *Rocket) Create(ctx context.Context, host, name, namespace, user, email string, databaseSize int64, replicas int32) error {
 	l := ctxzap.Extract(ctx)
 
-	//TODO: Use Issuer Name for Ingress
-	_, err := k8sutil.NewIssuer(ctx, email, name, namespace, k8sutil.SelfSigned, r.kubeclient, r.certmanagerClient)
-	if err != nil {
-		err = fmt.Errorf("Error setting rocket Client for kubernetes from token: %v", err)
-		l.Error(err.Error())
-		return err
-	}
-
-	err = r.setRocketClientToUserClient(ctx)
+	err := r.setRocketClientToUserClient(ctx)
 	if err != nil {
 		err = fmt.Errorf("Error setting rocket Client for kubernetes from token: %v", err)
 		l.Error(err.Error())

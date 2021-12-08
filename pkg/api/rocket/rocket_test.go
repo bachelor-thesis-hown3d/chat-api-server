@@ -1,4 +1,4 @@
-package api
+package rocket
 
 import (
 	"context"
@@ -13,11 +13,9 @@ import (
 
 	"github.com/bachelor-thesis-hown3d/chat-api-server/pkg/service"
 	"github.com/bachelor-thesis-hown3d/chat-api-server/pkg/testutils"
-	fakeChat "github.com/bachelor-thesis-hown3d/chat-operator/pkg/client/clientset/versioned/fake"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/fake"
 )
 
 const (
@@ -27,10 +25,10 @@ const (
 
 var lis *bufconn.Listener
 
-func apiInit(service service.Interface) {
+func apiInit(service service.RocketService) {
 	lis = bufconn.Listen(bufSize)
 	s := grpc.NewServer()
-	rocketpb.RegisterRocketServiceServer(s, NewAPIServer(fake.NewSimpleClientset(), fakeChat.NewSimpleClientset().ChatV1alpha1(), service))
+	rocketpb.RegisterRocketServiceServer(s, NewAPIServer(service))
 	go func() {
 		if err := s.Serve(lis); err != nil {
 			log.Fatalf("Server exited with error: %v", err)

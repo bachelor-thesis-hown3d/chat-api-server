@@ -26,7 +26,6 @@ type RocketServiceClient interface {
 	GetAll(ctx context.Context, in *GetAllRequest, opts ...grpc.CallOption) (*GetAllResponse, error)
 	Logs(ctx context.Context, in *LogsRequest, opts ...grpc.CallOption) (RocketService_LogsClient, error)
 	AvailableVersions(ctx context.Context, in *AvailableVersionsRequest, opts ...grpc.CallOption) (*AvailableVersionsResponse, error)
-	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error)
 }
 
 type rocketServiceClient struct {
@@ -155,15 +154,6 @@ func (c *rocketServiceClient) AvailableVersions(ctx context.Context, in *Availab
 	return out, nil
 }
 
-func (c *rocketServiceClient) Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error) {
-	out := new(RegisterResponse)
-	err := c.cc.Invoke(ctx, "/rocket.v1.RocketService/Register", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // RocketServiceServer is the server API for RocketService service.
 // All implementations should embed UnimplementedRocketServiceServer
 // for forward compatibility
@@ -176,7 +166,6 @@ type RocketServiceServer interface {
 	GetAll(context.Context, *GetAllRequest) (*GetAllResponse, error)
 	Logs(*LogsRequest, RocketService_LogsServer) error
 	AvailableVersions(context.Context, *AvailableVersionsRequest) (*AvailableVersionsResponse, error)
-	Register(context.Context, *RegisterRequest) (*RegisterResponse, error)
 }
 
 // UnimplementedRocketServiceServer should be embedded to have forward compatible implementations.
@@ -206,9 +195,6 @@ func (UnimplementedRocketServiceServer) Logs(*LogsRequest, RocketService_LogsSer
 }
 func (UnimplementedRocketServiceServer) AvailableVersions(context.Context, *AvailableVersionsRequest) (*AvailableVersionsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AvailableVersions not implemented")
-}
-func (UnimplementedRocketServiceServer) Register(context.Context, *RegisterRequest) (*RegisterResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Register not implemented")
 }
 
 // UnsafeRocketServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -372,24 +358,6 @@ func _RocketService_AvailableVersions_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RocketService_Register_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RegisterRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RocketServiceServer).Register(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/rocket.v1.RocketService/Register",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RocketServiceServer).Register(ctx, req.(*RegisterRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // RocketService_ServiceDesc is the grpc.ServiceDesc for RocketService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -420,10 +388,6 @@ var RocketService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AvailableVersions",
 			Handler:    _RocketService_AvailableVersions_Handler,
-		},
-		{
-			MethodName: "Register",
-			Handler:    _RocketService_Register_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

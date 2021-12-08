@@ -4,6 +4,8 @@ package rocket.v1;
 
 option go_package = "github.com/hown3d/chat-apiserver/proto/v1;rocket";
 
+// import "google/api/annotations.proto";
+
 // Protobuf Service of API
 service RocketService {
   rpc Create(CreateRequest) returns (CreateResponse) {}
@@ -15,27 +17,9 @@ service RocketService {
   rpc Logs(LogsRequest) returns (stream LogsResponse) {}
   rpc AvailableVersions(AvailableVersionsRequest)
       returns (AvailableVersionsResponse) {}
-  rpc Register(RegisterRequest) returns (RegisterResponse) {}
 }
-
-message RegisterRequest {
-  enum Size {
-    SIZE_UNSPECIFIED = 0;
-    // 1 vCPU and 2Gi Memory
-    SIZE_SMALL = 1;
-    // 2 vCPU and 4Gi Memory
-    SIZE_MEDIUM = 2;
-    // 4 vCPU and 8Gi Memory
-    SIZE_LARGE = 3;
-  }
-  Size size = 1;
-  string username = 2;
-}
-
-message RegisterResponse {}
 
 message CreateRequest {
-  string user = 1;
   string name = 2;
   string namespace = 3;
   string rocket_version = 4;
@@ -50,7 +34,6 @@ message CreateRequest {
 message CreateResponse {}
 
 message GetRequest {
-  string user = 1;
   string name = 2;
   string namespace = 3;
 }
@@ -66,10 +49,7 @@ message GetResponse {
   string namespace = 8;
 }
 
-message GetAllRequest {
-  string user = 1;
-  string namespace = 2;
-}
+message GetAllRequest { string namespace = 2; }
 
 message GetAllResponse { repeated GetResponse rockets = 1; }
 
@@ -98,7 +78,6 @@ message LogsResponse {
 }
 
 message StatusRequest {
-
   string name = 1;
   string namespace = 2;
 }

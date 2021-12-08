@@ -1,4 +1,4 @@
-package grpcui
+package ui
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func NewGRPCUiWebServer(ctx context.Context, target string, logger *log.Logger) error {
+func NewServer(ctx context.Context, target string, logger *log.Logger) error {
 	cc, err := grpc.DialContext(ctx, target, grpc.WithBlock(), grpc.WithInsecure())
 	if err != nil {
 		return err

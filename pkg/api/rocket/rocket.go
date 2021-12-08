@@ -1,60 +1,35 @@
-package api
+package rocket
 
 import (
 	"context"
 	"fmt"
 
-	chatv1alpha1 "github.com/bachelor-thesis-hown3d/chat-operator/pkg/client/clientset/versioned/typed/chat.accso.de/v1alpha1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/bachelor-thesis-hown3d/chat-api-server/pkg/k8sutil"
+	"github.com/bachelor-thesis-hown3d/chat-api-server/pkg/oauth"
 	"github.com/bachelor-thesis-hown3d/chat-api-server/pkg/service"
 	rocketpb "github.com/bachelor-thesis-hown3d/chat-api-server/proto/rocket/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
 type rocketAPIServer struct {
-	service service.Interface
+	service service.RocketService
 }
 
-func NewAPIServer(kubeclient kubernetes.Interface, chatclient chatv1alpha1.ChatV1alpha1Interface, service service.Interface) *rocketAPIServer {
+func NewAPIServer(service service.RocketService) *rocketAPIServer {
 	return &rocketAPIServer{
 		service: service,
 	}
 }
 
 func (r *rocketAPIServer) Create(ctx context.Context, req *rocketpb.CreateRequest) (*rocketpb.CreateResponse, error) {
-	err := r.service.Create(ctx, req.GetName(), req.GetHost(), req.GetNamespace(), req.GetName(), req.GetEmail(), req.GetDatabaseSize(), req.GetReplicas())
+	email := ctx.Value(oauth.EmailClaim)
+	err := r.service.Create(ctx, req.GetName(), req.GetHost(), req.GetNamespace(), req.GetName(), email.(string), req.GetDatabaseSize(), req.GetReplicas())
 	if err != nil {
 		return nil, err
 	}
 	return &rocketpb.CreateResponse{}, nil
-}
-
-func (r *rocketAPIServer) Register(ctx context.Context, req *rocketpb.RegisterRequest) (*rocketpb.RegisterResponse, error) {
-	var mem, cpu int64
-	switch s := req.Size; s {
-	case rocketpb.RegisterRequest_SIZE_SMALL:
-		mem = smallMemory
-		cpu = smallCPU
-	case rocketpb.RegisterRequest_SIZE_MEDIUM:
-		mem = mediumMemory
-		cpu = mediumCPU
-	case rocketpb.RegisterRequest_SIZE_LARGE:
-		mem = largeMemory
-		cpu = largeCPU
-	case rocketpb.RegisterRequest_SIZE_UNSPECIFIED:
-		return &rocketpb.RegisterResponse{}, status.Error(codes.InvalidArgument, "Size can't be empty")
-	default:
-		return &rocketpb.RegisterResponse{}, status.Error(codes.InvalidArgument, "Size can't be empty")
-	}
-
-	if req.GetUsername() == "" {
-		return &rocketpb.RegisterResponse{}, fmt.Errorf("Username must be set")
-	}
-
-	return &rocketpb.RegisterResponse{}, r.service.Register(ctx, req.Username, cpu, mem)
 }
 
 func (r *rocketAPIServer) AvailableVersions(ctx context.Context, req *rocketpb.AvailableVersionsRequest) (*rocketpb.AvailableVersionsResponse, error) {

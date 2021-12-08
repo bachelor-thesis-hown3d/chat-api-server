@@ -7,8 +7,8 @@ import (
 	"github.com/bachelor-thesis-hown3d/chat-operator/api/chat.accso.de/v1alpha1"
 )
 
-// Interface
-type Interface interface {
+// RocketService
+type RocketService interface {
 	Logs(name, namespace, pod string, stream rocketpb.RocketService_LogsServer) error
 	GetAll(ctx context.Context, namespace string) (*v1alpha1.RocketList, error)
 	Get(ctx context.Context, name, namespace string) (*v1alpha1.Rocket, error)
@@ -16,5 +16,8 @@ type Interface interface {
 	Status(name, namespace string, stream rocketpb.RocketService_StatusServer) error
 	Delete(ctx context.Context, name, namespace string) error
 	AvailableVersions(repo string) ([]string, error)
-	Register(ctx context.Context, user string, cpu, mem int64) error
+}
+
+type TenantService interface {
+	Register(ctx context.Context, name, email string, cpu, mem int64) error
 }
