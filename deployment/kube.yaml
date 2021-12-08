@@ -60,13 +60,15 @@ kind: ClusterRole
 metadata:
   name: chat-api-server
 rules:
-- apiGroups: ["chat.accso.de"]
-  resources: ["rockets"]
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["roles", "rolebindings"]
   verbs: ["create","delete", "update", "patch", "get", "watch", "list"]
-- apiGroups: [""] # "" indicates the core API group
-  resources: ["pods", "pods/log"]
-  verbs: ["get"]
-
+- apiGroups: ["cert-manager.io"]
+  resources: ["issuers"]
+  verbs: ["create","delete", "update", "patch", "get", "watch", "list"]
+- apiGroups: [""]
+  resources: ["secrets", "namespaces"]
+  verbs: ["create","delete", "update", "patch", "get", "watch", "list"]
 ---
 
 apiVersion: rbac.authorization.k8s.io/v1

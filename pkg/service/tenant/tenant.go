@@ -22,10 +22,10 @@ func NewTenantServiceImpl(kubeclient kubernetes.Interface, certmanagerClient cer
 	}
 }
 
-func (t *Tenant) Register(ctx context.Context, name string, email string, cpu, mem int64) error {
+func (t *Tenant) Register(ctx context.Context, username string, email string, cpu, mem int64) error {
 	l := ctxzap.Extract(ctx)
 
-	namespace := name
+	namespace := username
 
 	err := k8sutil.CreateNamespaceIfNotExist(ctx, namespace, t.kubeclient)
 	if err != nil {
@@ -42,9 +42,16 @@ func (t *Tenant) Register(ctx context.Context, name string, email string, cpu, m
 	}
 
 	//TODO: Use Issuer Name for Ingress
-	_, err = k8sutil.NewIssuer(ctx, email, name, namespace, k8sutil.SelfSigned, t.kubeclient, t.certmanagerClient)
+	_, err = k8sutil.NewIssuer(ctx, email, username, namespace, k8sutil.SelfSigned, t.kubeclient, t.certmanagerClient)
 	if err != nil {
-		err = fmt.Errorf("Error setting rocket Client for kubernetes from token: %v", err)
+		err = fmt.Errorf("Error creating new Certmanager Issuer: %v", err)
+		l.Error(err.Error())
+		return err
+	}
+
+	err = k8sutil.CreateRBAC(ctx, email, username, t.kubeclient)
+	if err != nil {
+		err = fmt.Errorf("Error creating rbac: %v", err)
 		l.Error(err.Error())
 		return err
 	}
