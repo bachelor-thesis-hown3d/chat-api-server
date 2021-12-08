@@ -34,7 +34,7 @@ var (
 	port           = flag.Int("port", 10000, "The server port")
 	devel          = flag.Bool("devel", false, "Set the api-server to development mode (nice log, grpcui etc.)")
 	oauthClientID  = flag.String("oauth-client-id", "kubernetes", "oauth Client ID of the issuer")
-	oauthIssuerUrl = flag.String("oauth-issuer-url", "https://localhost:8443/auth/realms/kubernetes", "oauth Client ID of the issuer")
+	oauthIssuerUrl = flag.String("oauth-issuer-url", "https://keycloak:8443/auth/realms/kubernetes", "oauth Client ID of the issuer")
 	logger         *zap.Logger
 )
 
