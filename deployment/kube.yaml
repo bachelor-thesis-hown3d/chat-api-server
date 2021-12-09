@@ -21,8 +21,7 @@ spec:
     spec:
       serviceAccount: chat-api-server
       containers:
-      #- image: quay.io/hown3d/chat-api-server:0.0.2
-      - image: quay.io/hown3d/chat-api-server:0.0.2
+      - image: quay.io/hown3d/chat-api-server:v1.0.0
         name: chat-api-server
         #args: 
         #  - "-devel"

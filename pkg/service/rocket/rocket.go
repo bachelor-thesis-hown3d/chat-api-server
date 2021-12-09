@@ -131,7 +131,7 @@ func (r *Rocket) Create(ctx context.Context, host, name, namespace, user, email 
 			Database: chatv1alpha1.RocketDatabase{
 				Replicas: replicas,
 				StorageSpec: &chatv1alpha1.EmbeddedPersistentVolumeClaim{
-					TypeMeta: metav1.TypeMeta{Kind: "PersistentVolumeClaim", APIVersion: "v1"},
+					//TypeMeta: metav1.TypeMeta{Kind: "PersistentVolumeClaim", APIVersion: "v1"},
 					Spec: v1.PersistentVolumeClaimSpec{
 						Resources: v1.ResourceRequirements{
 							Requests: v1.ResourceList{
