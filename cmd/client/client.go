@@ -34,7 +34,7 @@ var (
 	port        = flag.Int("port", 10000, "Port of the api server")
 	host        = flag.String("host", "", "Hostname of the api server")
 	redirectURI = flag.String("redirectUrl", "http://localhost:7070", "address for the oauth server to listen on")
-	issuerURI   = flag.String("issuerUrl", "https://localhost:8443/auth/realms/kubernetes", "address for the oauth server to listen on")
+	issuerURI   = flag.String("issuerUrl", "https://keycloak:8443/auth/realms/kubernetes", "address for the oauth server to listen on")
 )
 
 func startOAuthAndWaitForToken(clientID, clientSecret string) string {
@@ -97,8 +97,6 @@ func main() {
 	}
 
 	token := startOAuthAndWaitForToken(clientID, clientSecret)
-
-	fmt.Println(token)
 
 	ctx := context.Background()
 	conn, err := grpc.DialContext(ctx, fmt.Sprintf("%v:%v", *host, *port), grpc.WithInsecure())
@@ -193,17 +191,17 @@ func defaultFlow(ctx context.Context, rocketClient rocketpb.RocketServiceClient,
 		ready = msg.Ready
 	}
 	//
-	logsClient, err := rocketClient.Logs(ctx, &rocketpb.LogsRequest{Name: newRocket.Name, Namespace: newRocket.Namespace})
-	for {
-		// blocking
-		msg, err := logsClient.Recv()
-		if status.Code(err) == codes.Canceled {
-			log.Println("Context was canceled")
-			os.Exit(0)
-		}
-		if err != nil {
-			log.Fatalf("Error: %v", err.Error())
-		}
-		fmt.Printf("Pod: %v - Msg: %v\n", msg.Pod, msg.Message)
-	}
+	// logsClient, err := rocketClient.Logs(ctx, &rocketpb.LogsRequest{Name: newRocket.Name, Namespace: newRocket.Namespace})
+	// for {
+	// 	// blocking
+	// 	msg, err := logsClient.Recv()
+	// 	if status.Code(err) == codes.Canceled {
+	// 		log.Println("Context was canceled")
+	// 		os.Exit(0)
+	// 	}
+	// 	if err != nil {
+	// 		log.Fatalf("Error: %v", err.Error())
+	// 	}
+	// 	fmt.Printf("Pod: %v - Msg: %v\n", msg.Pod, msg.Message)
+	// }
 }

@@ -115,7 +115,14 @@ func (r *Rocket) Create(ctx context.Context, host, name, namespace, user, email 
 			Name: name,
 		},
 		Spec: chatv1alpha1.RocketSpec{
-			Host:     host,
+			IngressSpec: chatv1alpha1.RocketIngressSpec{
+				Host: host,
+				Annotations: map[string]string{
+					// TODO: Maybe dynamicly get the ingress class
+					"kubernetes.io/ingress.class": "nginx",
+					"cert-manager.io/issuer":      user + "-issuer",
+				},
+			},
 			Replicas: replicas,
 			AdminSpec: &chatv1alpha1.RocketAdminSpec{
 				Email:    email,

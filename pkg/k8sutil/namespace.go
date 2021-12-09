@@ -4,7 +4,6 @@ import (
 	"context"
 
 	corev1 "k8s.io/api/core/v1"
-	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -18,11 +17,6 @@ func CreateNamespaceIfNotExist(ctx context.Context, name string, client kubernet
 		},
 	}
 	_, err := client.CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{})
-	if err != nil {
-		if apiErrors.IsAlreadyExists(err) {
-			return nil
-		}
-		return err
-	}
-	return nil
+	err = checkIfAlreadyExistsError(err)
+	return err
 }

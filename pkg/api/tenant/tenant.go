@@ -38,8 +38,8 @@ func (t *tenantAPIServer) Register(ctx context.Context, req *tenantpb.RegisterRe
 		return &tenantpb.RegisterResponse{}, status.Error(codes.InvalidArgument, "Size can't be empty")
 	}
 
-	name := ctx.Value(oauth.NameClaim).(string)
-	email := ctx.Value(oauth.EmailClaim).(string)
+	name := ctx.Value(oauth.NameClaimKey).(string)
+	email := ctx.Value(oauth.EmailClaimKey).(string)
 
 	return &tenantpb.RegisterResponse{}, t.service.Register(ctx, name, email, cpu, mem)
 }

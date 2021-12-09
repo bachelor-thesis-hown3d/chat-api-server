@@ -24,8 +24,9 @@ func NewAPIServer(service service.RocketService) *rocketAPIServer {
 }
 
 func (r *rocketAPIServer) Create(ctx context.Context, req *rocketpb.CreateRequest) (*rocketpb.CreateResponse, error) {
-	email := ctx.Value(oauth.EmailClaim)
-	err := r.service.Create(ctx, req.GetName(), req.GetHost(), req.GetNamespace(), req.GetName(), email.(string), req.GetDatabaseSize(), req.GetReplicas())
+	email := ctx.Value(oauth.EmailClaimKey).(string)
+	username := ctx.Value(oauth.NameClaimKey).(string)
+	err := r.service.Create(ctx, req.GetHost(), req.GetName(), req.GetNamespace(), username, email, req.GetDatabaseSize(), req.GetReplicas())
 	if err != nil {
 		return nil, err
 	}
