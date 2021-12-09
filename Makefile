@@ -2,7 +2,7 @@ BIN="$(shell /bin/pwd)/bin"
 BUF_VERSION=1.0.0-rc7
 BUF=bin/buf
 
-VERSION=0.0.2
+VERSION=1.0.0
 
 proto-build: buf deps proto-lint
 	$(BUF) build
@@ -47,7 +47,7 @@ docker-build:
 	DOCKER_BUILDKIT=1 docker build --tag=quay.io/hown3d/chat-api-server:v$(VERSION) .
 
 docker-push: docker-build
-	docker push quay.io/hown3d/chat-api-server:$(VERSION)
+	docker push quay.io/hown3d/chat-api-server:v$(VERSION)
 
 build:
 	go build -o _output/server ./cmd/server/main.go 
