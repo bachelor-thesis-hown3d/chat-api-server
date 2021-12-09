@@ -1,3 +1,4 @@
+
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -21,14 +22,13 @@ spec:
     spec:
       serviceAccount: chat-api-server
       containers:
-      #- image: quay.io/hown3d/chat-api-server:0.0.2
-      - image: hown3d/chat-api-server:0.0.2
+      - image: quay.io/hown3d/chat-api-server:0.0.2
         name: chat-api-server
         args: 
           - "-devel"
-        securityContext:
-          runAsUser: 999
-          runAsGroup: 999 
+        #securityContext:
+        #  runAsUser: 999
+        #  runAsGroup: 999 
         resources:
           requests:
             cpu: "20m"
@@ -45,7 +45,7 @@ spec:
         - containerPort:  10000
           name:  grpc
         - containerPort: 10001
-          name: swagger
+          name: gateway
 ---
 
 apiVersion: v1
@@ -62,18 +62,26 @@ metadata:
   name: chat-api-server
 rules:
 # TODO: only create rbac, other stuff should be created by the app itself
-#- apiGroups: ["chat.accso.de"]
-  #resources: ["rockets"]
-  #verbs: ["create","delete", "update", "patch", "get", "watch", "list"]
-- apiGroups: [""]
-  resources: ["secrets"]
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["roles", "rolebindings"]
   verbs: ["create","delete", "update", "patch", "get", "watch", "list"]
 - apiGroups: ["cert-manager.io"]
-  resources: ["Issuer"]
+  resources: ["issuers"]
   verbs: ["create","delete", "update", "patch", "get", "watch", "list"]
-- apiGroups: [""] # "" indicates the core API group
-  resources: ["pods", "pods/log"]
+- apiGroups: [""]
+  resources: ["secrets", "namespaces", "resourcequotas"]
+  verbs: ["create","delete", "update", "patch", "get", "watch", "list"]
+# Service account needs the rights to grant them
+- apiGroups: [""]
+  resources: ["pods"]
   verbs: ["get"]
+- apiGroups: [""]
+  resources: ["pods/log"]
+  verbs: ["get"]
+- apiGroups: ["chat.accso.de"]
+  resources: ["*"]
+  verbs: ["*"]
+
 
 ---
 

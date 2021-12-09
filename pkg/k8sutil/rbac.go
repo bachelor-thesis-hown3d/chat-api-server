@@ -22,20 +22,17 @@ func createUserRoleBinding(ctx context.Context, username string, email string, r
 			{Kind: rbacv1.UserKind, Name: "oidc:" + email},
 		},
 		RoleRef: rbacv1.RoleRef{
-			Kind:     role.Kind,
-			APIGroup: role.APIVersion,
+			Kind:     "Role",
+			APIGroup: rbacv1.SchemeGroupVersion.Group,
 			Name:     role.Name,
 		},
 	}
 
 	_, err := kubeclient.RbacV1().RoleBindings(namespace).Create(ctx, rb, metav1.CreateOptions{})
-	if !apiErrors.IsAlreadyExists(err) {
-		return err
-	}
-	return nil
+	return err
 }
 
-func createUserRole(ctx context.Context, username string, kubeclient kubernetes.Interface) (*rbacv1.Role, error) {
+func getOrCreateUserRole(ctx context.Context, username string, kubeclient kubernetes.Interface) (*rbacv1.Role, error) {
 	namespace := username
 	role := &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
@@ -48,7 +45,7 @@ func createUserRole(ctx context.Context, username string, kubeclient kubernetes.
 					rbacv1.VerbAll,
 				},
 				APIGroups: []string{chatv1alpha1.SchemeGroupVersion.Group},
-				Resources: []string{rbacv1.ResourceAll},
+				Resources: []string{"rockets"},
 			},
 			{
 				Verbs: []string{
@@ -60,18 +57,24 @@ func createUserRole(ctx context.Context, username string, kubeclient kubernetes.
 				},
 			}},
 	}
-	role, err := kubeclient.RbacV1().Roles(namespace).Create(ctx, role, metav1.CreateOptions{})
-
-	if !apiErrors.IsAlreadyExists(err) {
-		return nil, err
+	createdRole, err := kubeclient.RbacV1().Roles(namespace).Create(ctx, role, metav1.CreateOptions{})
+	// check if role already exists, if yes, return the role by a get request
+	if err != nil {
+		if !apiErrors.IsAlreadyExists(err) {
+			return nil, err
+		}
+		createdRole, err = kubeclient.RbacV1().Roles(namespace).Get(ctx, username, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
 	}
-	return role, nil
+
+	return createdRole, nil
 }
 
 func CreateRBAC(ctx context.Context, email, username string, kubeclient kubernetes.Interface) error {
-	role, err := createUserRole(ctx, username, kubeclient)
-	if err != nil {
-		return err
-	}
-	return createUserRoleBinding(ctx, username, email, role, kubeclient)
+	role, err := getOrCreateUserRole(ctx, username, kubeclient)
+
+	err = createUserRoleBinding(ctx, username, email, role, kubeclient)
+	return checkIfAlreadyExistsError(err)
 }

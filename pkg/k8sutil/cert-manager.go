@@ -16,11 +16,11 @@ import (
 	corev1Client "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
-type messageType struct{}
+type messageType string
 
 var (
-	ACME       messageType
-	SelfSigned messageType
+	ACME       = messageType("acme")
+	SelfSigned = messageType("selfsigned")
 )
 
 // NewIssuer creates a new Issuer inside the specifed namespace for lets encrypt certificates.
@@ -65,14 +65,22 @@ func NewIssuer(
 		},
 	}
 	issuer, err := issuersClient.Create(ctx, i, metav1.CreateOptions{})
-	if !apiErrors.IsAlreadyExists(err) {
-		return "", err
+	if err != nil {
+		if !apiErrors.IsAlreadyExists(err) {
+			return "", err
+		}
 	}
 	return issuer.Name, nil
 }
 
 func privateKeySecret(ctx context.Context, name string, client corev1Client.SecretInterface) (v1.SecretKeySelector, error) {
 	secretName := name + "-issuer-private-key"
+	selector := v1.SecretKeySelector{
+		LocalObjectReference: v1.LocalObjectReference{
+			Name: secretName,
+		},
+	}
+
 	s := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: secretName,
@@ -80,14 +88,7 @@ func privateKeySecret(ctx context.Context, name string, client corev1Client.Secr
 	}
 
 	_, err := client.Create(ctx, s, metav1.CreateOptions{})
-	if !apiErrors.IsAlreadyExists(err) {
-		return v1.SecretKeySelector{}, err
-	}
+	err = checkIfAlreadyExistsError(err)
 
-	selector := v1.SecretKeySelector{
-		LocalObjectReference: v1.LocalObjectReference{
-			Name: secretName,
-		},
-	}
-	return selector, nil
+	return selector, err
 }

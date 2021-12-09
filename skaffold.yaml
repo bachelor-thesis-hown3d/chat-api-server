@@ -4,7 +4,7 @@ metadata:
   name: chat-saas
 build:
   artifacts:
-  - image: hown3d/chat-api-server
+  - image: quay.io/hown3d/chat-api-server
     docker:
       dockerfile: Dockerfile
   local:
@@ -25,3 +25,23 @@ deploy:
   kubectl:
     manifests:
     - deployment/devel.yaml
+
+# profiles:
+#   - name: debug
+#     build:
+#       artifacts:
+#       - image: hown3d/chat-api-server
+#         docker:
+#           dockerfile: Dockerfile
+#           target: builder
+#       local:
+#         useBuildkit: true
+#   - name: prod
+#     build:
+#       artifacts:
+#       - image: hown3d/chat-api-server
+#         docker:
+#           dockerfile: Dockerfile
+#           target: prod
+#       local:
+#         useBuildkit: true

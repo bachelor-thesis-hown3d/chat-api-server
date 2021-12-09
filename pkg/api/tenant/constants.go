@@ -1,11 +1,11 @@
 package tenant
 
 const (
-	largeCPU  int64 = 4000
-	mediumCPU int64 = 2000
-	smallCPU  int64 = 1000
+	largeCPU  int64 = 800
+	mediumCPU int64 = 400
+	smallCPU  int64 = 200
 
-	largeMemory  = 8
-	mediumMemory = 4
-	smallMemory  = 2
+	largeMemory  = 16
+	mediumMemory = 8
+	smallMemory  = 4
 )

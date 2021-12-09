@@ -4,7 +4,6 @@ import (
 	"context"
 
 	corev1 "k8s.io/api/core/v1"
-	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -28,11 +27,6 @@ func CreateResourceQuotaIfNotExist(ctx context.Context, cpu, mem int64, namespac
 		},
 	}
 	_, err := quotasClient.Create(ctx, quota, metav1.CreateOptions{})
-	if err != nil {
-		if apiErrors.IsAlreadyExists(err) {
-			return nil
-		}
-		return err
-	}
-	return nil
+	err = checkIfAlreadyExistsError(err)
+	return err
 }

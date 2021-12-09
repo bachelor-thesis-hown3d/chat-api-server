@@ -35,13 +35,16 @@ deps: bin_dir
     google.golang.org/grpc/cmd/protoc-gen-go-grpc
 
 dev:
-	skaffold dev --port-forward=pods
+	skaffold dev --port-forward=pods 
+
+debug:
+	skaffold debug --port-forward=debug,pods 
 
 client:
 	cd cmd/client; go run client.go -host localhost
 
-docker-build: build
-  DOCKER_BUILDKIT=1 docker build --tag=$IMAGE --build-arg BUILD_ENV=builder-binary $(VERSION)
+docker-build: 
+	DOCKER_BUILDKIT=1 docker build --tag=quay.io/hown3d/chat-api-server:v$(VERSION) .
 
 docker-push: docker-build
 	docker push quay.io/hown3d/chat-api-server:$(VERSION)
