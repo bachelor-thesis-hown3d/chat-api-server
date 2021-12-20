@@ -18,7 +18,7 @@ var (
 	kubeconfig *string
 )
 
-func init() {
+func CreateKubeconfigFlag() {
 	file := filepath.Join(homedir.HomeDir(), ".kube", "config")
 	if _, err := os.Stat(file); !errors.Is(err, os.ErrNotExist) {
 		kubeconfig = flag.String("kubeconfig", file, "(optional) absolute path to the kubeconfig file")
