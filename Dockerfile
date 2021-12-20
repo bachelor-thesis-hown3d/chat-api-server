@@ -1,5 +1,3 @@
-#ARG BUILD_ENV=builder-golang
-
 # Build the server binary
 FROM golang:1.17 as builder
 
@@ -10,8 +8,6 @@ COPY go.sum go.sum
 # cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
 RUN go mod download
-
-
 
 # Copy the go source
 COPY cmd/server cmd/server
@@ -24,12 +20,6 @@ ARG SKAFFOLD_GO_GCFLAGS
 # Build
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -gcflags="${SKAFFOLD_GO_GCFLAGS}" -a -o server cmd/server/main.go
 
-# FROM scratch as builder-binary
-# WORKDIR /workspace
-# COPY _output/server /workspace/server
-
-# FROM ${BUILD_ENV} as build
-
 FROM alpine
 ENV GOTRACEBACK=all
 WORKDIR /app
@@ -39,6 +29,6 @@ RUN GRPC_HEALTH_PROBE_VERSION=v0.4.6 && \
 
 COPY --from=builder /workspace/server .
 
-#USER 999:999
+USER 999:999
 
 ENTRYPOINT ["/app/server"]

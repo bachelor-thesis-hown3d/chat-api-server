@@ -51,10 +51,7 @@ func (r *Rocket) setRocketClientToUserClient(ctx context.Context) error {
 }
 
 func (r *Rocket) setKubeClientToUserClient(ctx context.Context) error {
-	userToken, err := oauth.GetAuthTokenFromContext(ctx)
-	if err != nil {
-		return fmt.Errorf("Error getting token: %v", err)
-	}
+	userToken := ctx.Value(oauth.TokenKey).(string)
 	userClient, err := k8sutil.NewClientsetFromToken(userToken)
 	if err != nil {
 		return fmt.Errorf("Error creating new chatClient: %v", err)
@@ -100,7 +97,7 @@ func (r *Rocket) Status(name, namespace string, stream rocketpb.RocketService_St
 	}
 }
 
-func (r *Rocket) Create(ctx context.Context, host, name, namespace, user, email string, databaseSize int64, replicas int32) error {
+func (r *Rocket) Create(ctx context.Context, host, name, namespace, email, user string, databaseSize int64, replicas int32) error {
 	l := ctxzap.Extract(ctx)
 
 	err := r.setRocketClientToUserClient(ctx)

@@ -60,16 +60,6 @@ kind: ClusterRole
 metadata:
   name: chat-api-server
 rules:
-# TODO: only create rbac, other stuff should be created by the app itself
-- apiGroups: ["rbac.authorization.k8s.io"]
-  resources: ["roles", "rolebindings"]
-  verbs: ["create","delete", "update", "patch", "get", "watch", "list"]
-- apiGroups: ["cert-manager.io"]
-  resources: ["issuers"]
-  verbs: ["create","delete", "update", "patch", "get", "watch", "list"]
-- apiGroups: [""]
-  resources: ["secrets", "namespaces", "resourcequotas"]
-  verbs: ["create","delete", "update", "patch", "get", "watch", "list"]
 # Service account needs the rights to grant them
 - apiGroups: [""]
   resources: ["pods"]

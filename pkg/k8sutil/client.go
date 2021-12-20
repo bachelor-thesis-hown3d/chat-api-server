@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 
 	chatv1alpha1 "github.com/bachelor-thesis-hown3d/chat-operator/pkg/client/clientset/versioned/typed/chat.accso.de/v1alpha1"
-	certmanager "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/pkg/apis/clientauthentication"
 	"k8s.io/client-go/rest"
@@ -90,21 +89,4 @@ func NewChatClientsetFromToken(token string) (*chatv1alpha1.ChatV1alpha1Client, 
 	}
 	// create the clientset
 	return chatv1alpha1.NewForConfig(c)
-}
-
-func NewCertManagerClientsetFromKubeconfig() (*certmanager.CertmanagerV1Client, error) {
-	c, err := buildConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	return certmanager.NewForConfig(c)
-}
-func NewCertManagerClientsetFromToken(token string) (*certmanager.CertmanagerV1Client, error) {
-	c, err := buildConfigFromToken(token)
-	if err != nil {
-		return nil, err
-	}
-
-	return certmanager.NewForConfig(c)
 }

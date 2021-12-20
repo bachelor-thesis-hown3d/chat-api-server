@@ -8,7 +8,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/bachelor-thesis-hown3d/chat-api-server/pkg/k8sutil"
-	"github.com/bachelor-thesis-hown3d/chat-api-server/pkg/oauth"
 	"github.com/bachelor-thesis-hown3d/chat-api-server/pkg/service"
 	rocketpb "github.com/bachelor-thesis-hown3d/chat-api-server/proto/rocket/v1"
 )
@@ -24,9 +23,7 @@ func NewAPIServer(service service.RocketService) *rocketAPIServer {
 }
 
 func (r *rocketAPIServer) Create(ctx context.Context, req *rocketpb.CreateRequest) (*rocketpb.CreateResponse, error) {
-	email := ctx.Value(oauth.EmailClaimKey).(string)
-	username := ctx.Value(oauth.NameClaimKey).(string)
-	err := r.service.Create(ctx, req.GetHost(), req.GetName(), req.GetNamespace(), username, email, req.GetDatabaseSize(), req.GetReplicas())
+	err := r.service.Create(ctx, req.GetHost(), req.GetName(), req.GetNamespace(), req.GetEmail(), req.GetUser(), req.GetDatabaseSize(), req.GetReplicas())
 	if err != nil {
 		return nil, err
 	}
